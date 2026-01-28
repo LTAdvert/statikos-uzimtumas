@@ -299,21 +299,24 @@
                         {report.months.map(m => {
                             const stats = s.monthlyStats[m];
                             const usedUnits = stats?.uniqueSoldStands.size || 0;
-                            const freeUnits = potUnits - usedUnits;
-                            const unitRate = potUnits > 0 ? (usedUnits / potUnits) * 100 : 0;
+                            // Ištaisom minusą: laisvi negali būti mažiau už 0
+                            const freeUnits = Math.max(0, potUnits - usedUnits);
+                            const unitRate = potUnits > 0 ? Math.min(100, (usedUnits / potUnits) * 100) : 0;
                             const usedDays = stats?.soldDaysCount || 0;
                             const potDays = stats?.potentialDays || 0;
-                            const dayRate = potDays > 0 ? (usedDays / potDays) * 100 : 0;
+                            const dayRate = potDays > 0 ? Math.min(100, (usedDays / potDays) * 100) : 0;
+                            const dayFreeRate = Math.max(0, 100 - dayRate);
+
                             return (
                                 <Fragment key={m}>
                                     {vis.s_pot && <td className="p-2 border-r text-center text-gray-400 bg-white/50">{potUnits}</td>}
-                                    {vis.s_free && <td className={`p-2 border-r text-center font-bold ${freeUnits > 0 ? 'text-gray-900' : 'text-gray-200'}`}>{freeUnits}</td>}
+                                    {vis.s_free && <td className={`p-2 border-r text-center font-bold text-red-600`}>{freeUnits}</td>}
                                     {vis.s_used_pct && <td className="p-2 border-r text-center font-black text-indigo-600">{unitRate.toFixed(1)}%</td>}
-                                    {vis.s_free_pct && <td className="p-2 border-r text-center text-gray-400">{(100 - unitRate).toFixed(1)}%</td>}
+                                    {vis.s_free_pct && <td className="p-2 border-r text-center text-red-500">{(100 - unitRate).toFixed(1)}%</td>}
                                     {vis.k_pot && <td className="p-2 border-r text-center text-gray-400 italic bg-white/50">{potDays}</td>}
                                     {vis.k_used && <td className={`p-2 border-r text-center font-black ${usedDays > 0 ? 'text-amber-800' : 'text-gray-200'}`}>{usedDays}</td>}
                                     {vis.k_used_pct && <td className="p-2 border-r text-center font-black text-amber-700 bg-amber-50/5">{dayRate.toFixed(1)}%</td>}
-                                    {vis.k_free_pct && <td className="p-2 border-r text-center text-gray-400 bg-slate-50/5">{(100 - dayRate).toFixed(1)}%</td>}
+                                    {vis.k_free_pct && <td className="p-2 border-r text-center text-red-500 bg-slate-50/5">{dayFreeRate.toFixed(1)}%</td>}
                                 </Fragment>
                             );
                         })}
@@ -350,21 +353,21 @@
                             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-wrap items-center gap-6">
                                 {activeTab === "ataskaita" ? (
                                     <>
-                                        <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase">Nuo</span><input type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700" /></div>
-                                        <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase">Iki</span><input type="month" value={endMonth} onChange={(e) => setEndMonth(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700" /></div>
-                                        <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase">Tipas</span><select value={saleFilter} onChange={(e) => setSaleFilter(e.target.value)} className="bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700"><option value="mokamas">Tik komerciniai</option><option value="nemokamas">Tik nemokami</option><option value="bendrai">Bendrai</option></select></div>
+                                        <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase">Nuo</span><input type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none" /></div>
+                                        <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase">Iki</span><input type="month" value={endMonth} onChange={(e) => setEndMonth(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none" /></div>
+                                        <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase">Pardavimų tipas</span><select value={saleFilter} onChange={(e) => setSaleFilter(e.target.value)} className="bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none"><option value="mokamas">Tik komerciniai</option><option value="nemokamas">Tik nemokami</option><option value="bendrai">Bendrai (visi)</option></select></div>
                                         <div className="relative mt-5">
-                                            <button onClick={() => setShowColPicker(!showColPicker)} className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold bg-white text-gray-600"><IconSettings /> Stulpeliai</button>
+                                            <button onClick={() => setShowColPicker(!showColPicker)} className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold bg-white text-gray-600"><IconSettings /> Stulpelių rodymas</button>
                                             {showColPicker && (
                                                 <div className="absolute top-full left-0 mt-2 bg-white border border-gray-100 shadow-2xl rounded-2xl p-5 z-50 min-w-[400px]">
                                                     <div className="grid grid-cols-2 gap-8">
                                                         <div className="space-y-2">
-                                                            <div className="flex justify-between border-b pb-1"><span className="text-[10px] font-black text-indigo-600 uppercase">Stendai</span><button onClick={() => toggleGroup('stendai')} className="text-[9px] text-indigo-400">Visi</button></div>
-                                                            {[{id:'s_pot',l:'Galimybė'},{id:'s_free',l:'Laisvi'},{id:'s_used_pct',l:'Išnaudota %'},{id:'s_free_pct',l:'Neišnaudota %'}].map(c=>(<label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} />{c.l}</label>))}
+                                                            <div className="flex justify-between border-b pb-1"><span className="text-[10px] font-black text-indigo-600 uppercase">Stendai</span><button onClick={() => toggleGroup('stendai')} className="text-[9px] text-indigo-400 font-bold underline">Perjungti</button></div>
+                                                            {[{id:'s_pot',l:'Galimybė'},{id:'s_free',l:'Laisvi'},{id:'s_used_pct',l:'Išnaudota %'},{id:'s_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:text-indigo-600"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} />{c.l}</label>))}
                                                         </div>
                                                         <div className="space-y-2">
-                                                            <div className="flex justify-between border-b pb-1"><span className="text-[10px] font-black text-amber-600 uppercase">Kabėjimas</span><button onClick={() => toggleGroup('kabėjimas')} className="text-[9px] text-amber-400">Visi</button></div>
-                                                            {[{id:'k_pot',l:'Galimybė'},{id:'k_used',l:'Išnaudota'},{id:'k_used_pct',l:'Išnaudojimo %'},{id:'k_free_pct',l:'Laisvų %'}].map(c=>(<label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} />{c.l}</label>))}
+                                                            <div className="flex justify-between border-b pb-1"><span className="text-[10px] font-black text-amber-600 uppercase">Kabėjimas</span><button onClick={() => toggleGroup('kabėjimas')} className="text-[9px] text-amber-400 font-bold underline">Perjungti</button></div>
+                                                            {[{id:'k_pot',l:'Galimybė'},{id:'k_used',l:'Išnaudota'},{id:'k_used_pct',l:'Išnaudojimo %'},{id:'k_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:text-amber-600"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} />{c.l}</label>))}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -372,20 +375,20 @@
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase">Miestas</span><select value={filterCity} onChange={(e) => setFilterCity(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold min-w-[150px]">{filterOptions.cities.map(city => <option key={city} value={city}>{city}</option>)}</select></div>
+                                    <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase">Miestas</span><select value={filterCity} onChange={(e) => setFilterCity(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold min-w-[150px] outline-none">{filterOptions.cities.map(city => <option key={city} value={city}>{city}</option>)}</select></div>
                                 )}
                             </div>
                         )}
 
                         {data.length > 0 ? (
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in">
                                 {activeTab === "ataskaita" && report ? (
                                     <div className="overflow-x-auto max-h-[75vh]">
                                         <table className="w-full text-xs text-left border-collapse min-w-[2000px] table-fixed">
                                             <thead className="sticky top-0 z-20">
                                                 <tr className="bg-gray-100 border-b text-gray-500">
                                                     <th rowSpan="3" className="p-4 border-r sticky left-0 bg-gray-100 z-30 w-52 font-bold shadow-sm">Kategorija</th>
-                                                    {report.months.map(m => monthColSpan.total > 0 && <th key={m} colSpan={monthColSpan.total} className="p-2 border-r text-center font-bold text-indigo-900 bg-white border-b-2 border-indigo-100">{monthNames[m.split('-')[1]]}</th>)}
+                                                    {report.months.map(m => monthColSpan.total > 0 && <th key={m} colSpan={monthColSpan.total} className="p-2 border-r text-center font-bold text-indigo-900 bg-white border-b-2 border-indigo-100">{monthNames[m.split('-')[1]]} ({m.split('-')[0]})</th>)}
                                                 </tr>
                                                 <tr className="bg-gray-50 border-b text-[9px] font-black text-center uppercase tracking-widest">
                                                     {report.months.map(m => (
@@ -399,13 +402,13 @@
                                                     {report.months.map(m => (
                                                         <Fragment key={`${m}-d`}>
                                                             {vis.s_pot && <th className="p-1 border-r w-16">Galimybė</th>}
-                                                            {vis.s_free && <th className="p-1 border-r w-16">Laisvi</th>}
+                                                            {vis.s_free && <th className="p-1 border-r w-16 text-red-600 font-black">Laisvi</th>}
                                                             {vis.s_used_pct && <th className="p-1 border-r w-16 text-indigo-600">Išnaudota %</th>}
-                                                            {vis.s_free_pct && <th className="p-1 border-r w-16">Neišnaudota %</th>}
+                                                            {vis.s_free_pct && <th className="p-1 border-r w-16 text-red-500">Laisvi %</th>}
                                                             {vis.k_pot && <th className="p-1 border-r w-20">Galimybė</th>}
                                                             {vis.k_used && <th className="p-1 border-r w-20">Išnaudota</th>}
                                                             {vis.k_used_pct && <th className="p-1 border-r w-20 text-amber-700">Išnaudojimo %</th>}
-                                                            {vis.k_free_pct && <th className="p-1 border-r w-20">Laisvų %</th>}
+                                                            {vis.k_free_pct && <th className="p-1 border-r w-20 text-red-500 font-black">Laisvi %</th>}
                                                         </Fragment>
                                                     ))}
                                                 </tr>
