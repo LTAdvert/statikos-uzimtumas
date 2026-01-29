@@ -25,6 +25,18 @@
         /* PDF optimizacija */
         .pdf-content table { border-collapse: collapse !important; width: 100% !important; table-layout: auto !important; }
         .pdf-header { display: none; }
+        
+        /* Klasė naudojama PDF generavimo metu */
+        .is-exporting .sticky, 
+        .is-exporting .sticky-col,
+        .is-exporting thead { position: static !important; }
+        .is-exporting .overflow-x-auto,
+        .is-exporting .max-h-[75vh] { 
+            overflow: visible !important; 
+            max-height: none !important; 
+            width: auto !important;
+        }
+        
         @media print {
             .no-print { display: none !important; }
             .pdf-header { display: flex !important; }
@@ -37,17 +49,13 @@
     <script type="text/babel">
         const { useState, useMemo, useEffect, Fragment } = React;
 
-        // Įmonės LOGO komponentas (SVG iš atsiųsto paveiksliuko)
+        // Įmonės LOGO komponentas
         const Logo = ({ className = "h-12" }) => (
             <svg viewBox="0 0 350 85" className={className} xmlns="http://www.w3.org/2000/svg">
-                {/* Billboard piktograma */}
                 <path d="M5 35 H28 V12 H5 Z" stroke="#4cb848" strokeWidth="2.5" fill="none" />
                 <path d="M16.5 35 V48" stroke="#4cb848" strokeWidth="2.5" fill="none" />
-                {/* Žalia linija */}
                 <path d="M5 48 H340" stroke="#4cb848" strokeWidth="1.5" />
-                {/* Pagrindinis tekstas */}
                 <text x="42" y="38" fill="#4cb848" style={{ font: '900 38px Inter, sans-serif' }}>LT ADVERT</text>
-                {/* Subtekstas */}
                 <text x="7" y="68" fill="#222" style={{ font: '700 13px Inter, sans-serif', letterSpacing: '4.5px' }}>LAUKO REKLAMOS SPRENDIMAI</text>
             </svg>
         );
@@ -91,7 +99,8 @@
                 const element = document.getElementById('report-content');
                 if (!element) return;
 
-                // Pridedame laikiną klasę, kad būtų matomas PDF headeris eksporto metu
+                // Pridedame klasę, kuri išjungia overflow ir sticky efektus PDF generavimo metu
+                element.classList.add('is-exporting');
                 const header = element.querySelector('.pdf-header');
                 if (header) header.style.display = 'flex';
 
@@ -99,13 +108,21 @@
                     margin: [10, 10, 10, 10],
                     filename: `LT_ADVERT_Ataskaita_${activeTab}_${new Date().toISOString().split('T')[0]}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, logging: false },
-                    jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
+                    html2canvas: { 
+                        scale: 2, 
+                        useCORS: true, 
+                        logging: false,
+                        scrollX: 0,
+                        scrollY: 0,
+                        windowWidth: 2400 // Užtikriname, kad emuliuojamas langas būtų pakankamai platus visiems stulpeliams
+                    },
+                    jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' },
+                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
                 };
 
                 html2pdf().from(element).set(options).toPdf().get('pdf').then((pdf) => {
-                    // Atstatome headerio paslėpimą po generavimo
                     if (header) header.style.display = '';
+                    element.classList.remove('is-exporting');
                 }).save();
             };
 
@@ -381,7 +398,7 @@
 
                 return (
                     <tr key={s.name} className={`border-b border-gray-100 hover:opacity-90 transition-opacity ${rowBg} ${type !== 'normal' ? 'font-black' : ''}`}>
-                        <td className={`p-3 border-r sticky left-0 z-10 shadow-sm ${stickyBg} ${textColor}`}>{s.name}</td>
+                        <td className={`p-3 border-r sticky-col sticky left-0 z-10 shadow-sm ${stickyBg} ${textColor}`}>{s.name}</td>
                         {report.months.map((m, mIdx) => {
                             const stats = s.monthlyStats[m];
                             const potDays = stats?.potentialDays || 0;
@@ -469,12 +486,12 @@
 
                         {data.length > 0 ? (
                             <div id="report-content" className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in pdf-content">
-                                {/* PDF HEADERIS (matomas tik PDF'e) */}
+                                {/* PDF HEADERIS */}
                                 <div className="pdf-header hidden flex-col border-b-4 border-emerald-500 p-8 mb-4 bg-white">
-                                    <div className="flex justify-between items-start">
+                                    <div className="flex justify-between items-start w-full">
                                         <Logo className="h-16" />
                                         <div className="text-right">
-                                            <h2 className="text-2xl font-black text-gray-900 uppercase">Užimtumo Suvestinė</h2>
+                                            <h2 className="text-2xl font-black text-gray-900 uppercase">Statikos Užimtumo Suvestinė</h2>
                                             <p className="text-gray-500 font-bold uppercase text-xs tracking-widest mt-1">Generuota: {new Date().toLocaleDateString('lt-LT')}</p>
                                         </div>
                                     </div>
@@ -536,10 +553,10 @@
 
                                 {activeTab === "ataskaita" && report ? (
                                     <div className="overflow-x-auto max-h-[75vh]">
-                                        <table className="w-full text-xs text-left border-collapse min-w-[2000px] table-fixed">
+                                        <table className="w-full text-xs text-left border-collapse min-w-[2200px] table-fixed">
                                             <thead className="sticky top-0 z-20">
                                                 <tr className="bg-gray-100 border-b text-gray-500">
-                                                    <th rowSpan="3" className="p-4 border-r sticky left-0 bg-gray-100 z-30 w-52 font-bold shadow-sm">Kategorija</th>
+                                                    <th rowSpan="3" className="p-4 border-r sticky-col sticky left-0 bg-gray-100 z-30 w-52 font-bold shadow-sm">Kategorija</th>
                                                     {report.months.map((m, mIdx) => monthColSpan.total > 0 && <th key={m} colSpan={monthColSpan.total} className={`p-2 border-r text-center font-black text-indigo-900 bg-white border-b-2 border-indigo-100 ${mIdx % 2 === 0 ? 'bg-gray-200 !text-gray-600 font-black' : ''}`}>{monthNames[m.split('-')[1]]} ({m.split('-')[0]})</th>)}
                                                 </tr>
                                                 <tr className="bg-gray-50 border-b text-[9px] font-black text-center uppercase tracking-widest">
@@ -567,10 +584,10 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr className="bg-gray-100/30"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] text-gray-400 uppercase tracking-widest border-b text-indigo-900 text-center">MŪSŲ</td></tr>
+                                                <tr className="bg-gray-100/30 text-center"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] text-gray-400 uppercase tracking-widest border-b text-indigo-900">MŪSŲ</td></tr>
                                                 {ORDER_MUSU.map(c => renderRow(report.summary[c.toLowerCase()]))}
                                                 {renderRow(report.visoMusu, "musu")}
-                                                <tr className="bg-gray-100/30"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] text-gray-400 uppercase tracking-widest border-b border-t text-indigo-900 text-center">SUBNUOMA</td></tr>
+                                                <tr className="bg-gray-100/30 text-center"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] text-gray-400 uppercase tracking-widest border-b border-t text-indigo-900">SUBNUOMA</td></tr>
                                                 {ORDER_SUBNUOMA.map(c => renderRow(report.summary[c.toLowerCase()]))}
                                                 {renderRow(report.visoSubnuoma, "sub")}
                                                 <tr className="bg-gray-800 text-white"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-2 px-4 font-black text-[10px] uppercase tracking-widest text-center">GALUTINIAI REZULTATAI (BE REZERVACIJŲ)</td></tr>
