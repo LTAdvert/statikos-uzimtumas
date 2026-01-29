@@ -39,16 +39,26 @@
             const [activeTab, setActiveTab] = useState("ataskaita");
             const [showColPicker, setShowColPicker] = useState(false);
             
+            // Standartinis rėžis: 2026-01 iki 2026-03
             const [startMonth, setStartMonth] = useState("2026-01");
             const [endMonth, setEndMonth] = useState("2026-03");
 
+            // Pardavimų tipo filtras
             const [saleFilter, setSaleFilter] = useState("mokamas");
 
+            // Stulpelių matomumo būsena (tik Stendai aktyvūs pagal nutylėjimą)
             const [vis, setVis] = useState({
-                s_pot: true, s_free: true, s_used_pct: true, s_free_pct: true,
-                k_pot: true, k_used: true, k_used_pct: true, k_free_pct: true
+                s_pot: true,
+                s_used_pct: true,
+                s_free: true,
+                s_free_pct: true,
+                k_pot: false,
+                k_used: false,
+                k_used_pct: false,
+                k_free_pct: false
             });
 
+            // Registro filtrai
             const [filterCity, setFilterCity] = useState("");
             const [filterCat, setFilterCat] = useState("");
             const [filterStatus, setFilterStatus] = useState("");
@@ -264,11 +274,17 @@
                     return total;
                 };
 
-                return { months: sortedMonths, summary, visoMusu: calculateTotal(ORDER_MUSU, "VISO MŪSŲ"), visoSubnuoma: calculateTotal(ORDER_SUBNUOMA, "VISO SUBNUOMA"), grandTotal: calculateTotal([...ORDER_MUSU, ...ORDER_SUBNUOMA], "ABSOLIUČIAI VISKAS") };
+                return { 
+                    months: sortedMonths, 
+                    summary, 
+                    visoMusu: calculateTotal(ORDER_MUSU, "VISO MŪSŲ"), 
+                    visoSubnuoma: calculateTotal(ORDER_SUBNUOMA, "VISO SUBNUOMA"), 
+                    grandTotal: calculateTotal([...ORDER_MUSU, ...ORDER_SUBNUOMA], "ABSOLIUČIAI VISKAS") 
+                };
             }, [data, startMonth, endMonth, standInventory, saleFilter]);
 
             const monthColSpan = useMemo(() => {
-                const s_count = [vis.s_pot, vis.s_free, vis.s_used_pct, vis.s_free_pct].filter(Boolean).length;
+                const s_count = [vis.s_pot, vis.s_used_pct, vis.s_free, vis.s_free_pct].filter(Boolean).length;
                 const k_count = [vis.k_pot, vis.k_used, vis.k_used_pct, vis.k_free_pct].filter(Boolean).length;
                 return { s_count, k_count, total: s_count + k_count };
             }, [vis]);
@@ -277,7 +293,7 @@
 
             const toggleCol = (key) => setVis(prev => ({ ...prev, [key]: !prev[key] }));
             const toggleGroup = (group) => {
-                const keys = group === 'stendai' ? ['s_pot', 's_free', 's_used_pct', 's_free_pct'] : ['k_pot', 'k_used', 'k_used_pct', 'k_free_pct'];
+                const keys = group === 'stendai' ? ['s_pot', 's_used_pct', 's_free', 's_free_pct'] : ['k_pot', 'k_used', 'k_used_pct', 'k_free_pct'];
                 const newState = !vis[keys[0]];
                 setVis(prev => {
                     const upd = {...prev};
@@ -304,10 +320,10 @@
 
                             return (
                                 <Fragment key={m}>
-                                    {/* STENDAI BLOKAS */}
+                                    {/* STENDAI BLOKAS (Su nauja tvarka) */}
                                     {vis.s_pot && <td className="p-2 border-r text-center font-black text-black">{potUnits}</td>}
-                                    {vis.s_free && <td className={`p-2 border-r text-center font-bold text-red-600`}>{freeUnits}</td>}
                                     {vis.s_used_pct && <td className={`p-2 border-r text-center font-black ${unitRate > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>{unitRate.toFixed(1)}%</td>}
+                                    {vis.s_free && <td className={`p-2 border-r text-center font-bold text-red-600`}>{freeUnits}</td>}
                                     {vis.s_free_pct && <td className={`p-2 border-r text-center font-bold ${unitRate < 100 ? 'text-red-600' : 'text-gray-300'}`}>{(100 - unitRate).toFixed(1)}%</td>}
                                     
                                     {/* KABĖJIMAS BLOKAS */}
@@ -361,7 +377,7 @@
                                                     <div className="grid grid-cols-2 gap-8">
                                                         <div className="space-y-2">
                                                             <div className="flex justify-between border-b pb-1"><span className="text-[10px] font-black text-indigo-600 uppercase">Stendai</span><button onClick={() => toggleGroup('stendai')} className="text-[9px] text-indigo-400 font-bold underline decoration-dotted">Perjungti</button></div>
-                                                            {[{id:'s_pot',l:'Galimybė'},{id:'s_free',l:'Laisvi'},{id:'s_used_pct',l:'Išnaudota %'},{id:'s_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:text-indigo-600 py-1"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} className="rounded border-gray-300 text-indigo-600" />{c.l}</label>))}
+                                                            {[{id:'s_pot',l:'Galimybė'},{id:'s_used_pct',l:'Išnaudota %'},{id:'s_free',l:'Laisvi'},{id:'s_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:text-indigo-600 py-1"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} className="rounded border-gray-300 text-indigo-600" />{c.l}</label>))}
                                                         </div>
                                                         <div className="space-y-2">
                                                             <div className="flex justify-between border-b pb-1"><span className="text-[10px] font-black text-amber-600 uppercase">Kabėjimas</span><button onClick={() => toggleGroup('kabėjimas')} className="text-[9px] text-amber-400 font-bold underline decoration-dotted">Perjungti</button></div>
@@ -400,9 +416,10 @@
                                                     {report.months.map(m => (
                                                         <Fragment key={`${m}-d`}>
                                                             {vis.s_pot && <th className="p-1 border-r w-16">Galimybė</th>}
-                                                            {vis.s_free && <th className="p-1 border-r w-16 text-red-600 font-black">Laisvi</th>}
                                                             {vis.s_used_pct && <th className="p-1 border-r w-16 text-emerald-600 font-black">Išnaudota %</th>}
+                                                            {vis.s_free && <th className="p-1 border-r w-16 text-red-600 font-black">Laisvi</th>}
                                                             {vis.s_free_pct && <th className="p-1 border-r w-16 text-red-600">Laisvi %</th>}
+                                                            
                                                             {vis.k_pot && <th className="p-1 border-r w-20">Galimybė</th>}
                                                             {vis.k_used && <th className="p-1 border-r w-20 text-emerald-600 font-black">Išnaudota</th>}
                                                             {vis.k_used_pct && <th className="p-1 border-r w-20 text-emerald-600 font-black">Išnaudojimo %</th>}
