@@ -22,7 +22,7 @@
         ::-webkit-scrollbar-thumb:hover { background: #3d943a; }
         .row-expand-transition { transition: all 0.3s ease-in-out; }
         
-        /* PDF EXPORT LOGIKA - v17.4 */
+        /* PDF EXPORT LOGIKA - v17.5 */
         .is-exporting {
             background: white !important;
             padding: 0 !important;
@@ -113,7 +113,7 @@
 
                 const options = {
                     margin: [5, 5, 5, 5],
-                    filename: `LT_ADVERT_Ataskaita_${activeTab}_v17.4.pdf`,
+                    filename: `LT_ADVERT_Ataskaita_${activeTab}_v17.5.pdf`,
                     image: { type: 'jpeg', quality: 1.0 },
                     html2canvas: { 
                         scale: 2, 
@@ -462,7 +462,7 @@
                                 <div className="flex items-center gap-3">
                                     <Logo className="h-8 lg:h-10" />
                                     <div className="border-l pl-3 border-gray-200">
-                                        <h1 className="text-base lg:text-lg font-black text-indigo-900 tracking-tight leading-none mb-0.5 uppercase">Statika <span className="font-normal text-indigo-400 text-xs tracking-normal capitalize">PRO v17.4</span></h1>
+                                        <h1 className="text-base lg:text-lg font-black text-indigo-900 tracking-tight leading-none mb-0.5 uppercase">Statika <span className="font-normal text-indigo-400 text-xs tracking-normal capitalize">PRO v17.5</span></h1>
                                         <p className="text-gray-400 text-[9px] uppercase font-bold tracking-widest text-left">Analizė</p>
                                     </div>
                                 </div>
@@ -495,7 +495,7 @@
                                     <div className="flex justify-between items-start w-full">
                                         <Logo className="h-10" />
                                         <div className="text-right">
-                                            <h2 className="text-xl font-black text-black uppercase tracking-tight">Statikos Užimtumo Suvestinė v17.4</h2>
+                                            <h2 className="text-xl font-black text-black uppercase tracking-tight">Statikos Užimtumo Suvestinė v17.5</h2>
                                             <p className="text-black font-bold uppercase text-[8px] tracking-widest mt-1">Data: {new Date().toLocaleDateString('lt-LT')}</p>
                                         </div>
                                     </div>
@@ -601,7 +601,7 @@
                                                 <tr className="bg-gray-100/30 text-center"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1 px-4 font-black text-[8px] text-black uppercase border-b border-t tracking-widest">SUBNUOMOS TINKLAS</td></tr>
                                                 {ORDER_SUBNUOMA.map(c => renderRow(report.summary[c.toLowerCase()]))}
                                                 {renderRow(report.visoSubnuoma, "sub")}
-                                                <tr className="bg-gray-800 text-white"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] uppercase tracking-widest text-center">GALUTINIAI REZULTATAI (BE REZERVACIJŲ)</td></tr>
+                                                <tr className="bg-gray-800 text-white"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] uppercase tracking-widest text-center">GALUTINIAI REZULTATAI</td></tr>
                                                 {renderRow(report.grandTotal, "grand")}
                                             </tbody>
                                         </table>
@@ -679,7 +679,7 @@
                                                         <td className="p-2 border-r whitespace-nowrap"><span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${stand.status === "Aktyvus" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : stand.status === "Neaktyvus" ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-amber-50 text-amber-600 border-amber-100"}`}>{stand.status}</span></td>
                                                         <td className="p-2 border-r font-mono font-black text-black">{stand.kodas}</td>
                                                         <td className="p-2 border-r text-black font-black">{stand.miestas}</td>
-                                                        <td className="p-2 border-r text-black font-bold italic text-[10px] truncate max-w-[200px]">{stand.adresas}</td>
+                                                        <td className="p-2 border-r text-black font-bold italic text-[10px] truncate max-w-[250px]">{stand.adresas}</td>
                                                         <td className="p-2 text-indigo-500 font-black uppercase text-[9px] tracking-tighter">{stand.kategorija}</td>
                                                     </tr>
                                                 )) : <tr><td colSpan="5" className="p-10 text-center text-black font-black italic">Nėra duomenų</td></tr>}
@@ -700,7 +700,7 @@
                         {loading && (
                             <div className="flex flex-col items-center gap-4 py-32 animate-in fade-in">
                                 <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-                                <p className="text-indigo-900 font-black animate-pulse uppercase tracking-widest text-[9px]">Apdorojama...</p>
+                                <p className="text-indigo-900 font-black animate-pulse uppercase tracking-widest text-[10px]">Apdorojama...</p>
                             </div>
                         )}
                     </div>
