@@ -39,29 +39,17 @@
             const [activeTab, setActiveTab] = useState("ataskaita");
             const [showColPicker, setShowColPicker] = useState(false);
             
-            // Standartinis rėžis: 2026-01 iki 2026-03
             const [startMonth, setStartMonth] = useState("2026-01");
             const [endMonth, setEndMonth] = useState("2026-03");
-
-            // Pardavimų tipo filtras
             const [saleFilter, setSaleFilter] = useState("mokamas");
 
-            // Stulpelių matomumo būsena (tik Stendai aktyvūs pagal nutylėjimą)
             const [vis, setVis] = useState({
-                s_pot: true,
-                s_used_pct: true,
-                s_free: true,
-                s_free_pct: true,
-                k_pot: false,
-                k_used: false,
-                k_used_pct: false,
-                k_free_pct: false
+                s_pot: true, s_used_pct: true, s_free: true, s_free_pct: true,
+                k_pot: false, k_used: false, k_used_pct: false, k_free_pct: false
             });
 
-            // Registro filtrai
             const [filterCity, setFilterCity] = useState("");
             const [filterCat, setFilterCat] = useState("");
-            const [filterStatus, setFilterStatus] = useState("");
 
             const formatDate = (val) => {
                 if (!val) return null;
@@ -156,27 +144,19 @@
             const standInventory = useMemo(() => {
                 const inventory = new Map();
                 if (!data.length) return inventory;
-                
                 data.forEach(row => {
                     const code = row.Kodas;
                     if (!code) return;
                     const rawStatus = (row.Statusas || "").toLowerCase();
                     let calculatedStatus = "Aktyvus";
-                    if (rawStatus.includes("x")) {
-                        calculatedStatus = "Neaktyvus";
-                    } else if (rawStatus.includes("ruošiama") || rawStatus.includes("remontuojama")) {
-                        calculatedStatus = "Laikinai neveikia";
-                    }
+                    if (rawStatus.includes("x")) calculatedStatus = "Neaktyvus";
+                    else if (rawStatus.includes("ruošiama") || rawStatus.includes("remontuojama")) calculatedStatus = "Laikinai neveikia";
 
                     if (!inventory.has(code)) {
                         inventory.set(code, {
-                            kodas: code,
-                            miestas: row.Miestas || "Nenurodyta",
-                            adresas: row.Adresas || "Nenurodyta",
-                            tipas: row.Tipas || "Nenurodyta",
-                            kategorija: row.Kategorija || "Kita",
-                            status: calculatedStatus,
-                            catKey: (row.Kategorija || "Kita").toLowerCase().trim()
+                            kodas: code, miestas: row.Miestas || "Nenurodyta", adresas: row.Adresas || "Nenurodyta",
+                            tipas: row.Tipas || "Nenurodyta", kategorija: row.Kategorija || "Kita",
+                            status: calculatedStatus, catKey: (row.Kategorija || "Kita").toLowerCase().trim()
                         });
                     } else if (calculatedStatus === "Aktyvus" && inventory.get(code).status !== "Aktyvus") {
                         inventory.get(code).status = "Aktyvus";
@@ -192,50 +172,34 @@
                     if (s.miestas) cities.add(s.miestas);
                     if (s.kategorija) categories.add(s.kategorija);
                 });
-                return {
-                    cities: Array.from(cities).sort(),
-                    categories: Array.from(categories).sort()
-                };
+                return { cities: Array.from(cities).sort(), categories: Array.from(categories).sort() };
             }, [standInventory]);
 
             const ORDER_MUSU = ["Vilnius", "Kaunas", "Klaipėda", "Šiauliai", "Panevėžys", "Regionai", "Kolonos", "Vitrinos", "Nestandartai"];
             const ORDER_SUBNUOMA = ["Subnuoma", "Vitrinos sub"];
 
-            const standList = useMemo(() => {
-                let list = Array.from(standInventory.values());
-                if (filterCity) list = list.filter(s => s.miestas === filterCity);
-                if (filterCat) list = list.filter(s => s.kategorija === filterCat);
-                if (filterStatus) list = list.filter(s => s.status === filterStatus);
-                return list;
-            }, [standInventory, filterCity, filterCat, filterStatus]);
-
             const report = useMemo(() => {
                 if (!data.length || !startMonth || !endMonth) return null;
-
                 const summary = {};
-                const monthsSet = new Set();
                 const start = new Date(startMonth + "-01");
                 const end = new Date(endMonth + "-01");
-                let current = new Date(start);
-                while (current <= end) {
-                    monthsSet.add(current.toISOString().substring(0, 7));
-                    current.setMonth(current.getMonth() + 1);
+                const sortedMonths = [];
+                let currentM = new Date(start);
+                while (currentM <= end) {
+                    sortedMonths.push(currentM.toISOString().substring(0, 7));
+                    currentM.setMonth(currentM.getMonth() + 1);
                 }
-                const sortedMonths = Array.from(monthsSet).sort();
+
                 const allCats = [...ORDER_MUSU, ...ORDER_SUBNUOMA];
-                
                 allCats.forEach(c => {
                     const catKey = c.toLowerCase();
                     const potCount = Array.from(standInventory.values())
                         .filter(s => s.catKey === catKey && s.status !== "Neaktyvus").length;
-
                     summary[catKey] = { name: c, potentialUnits: potCount, monthlyStats: {} };
                     sortedMonths.forEach(m => {
                         const [y, mon] = m.split('-').map(Number);
                         const daysInMonth = new Date(y, mon, 0).getDate();
-                        summary[catKey].monthlyStats[m] = {
-                            uniqueSoldStands: new Set(), soldDaysCount: 0, potentialDays: potCount * daysInMonth
-                        };
+                        summary[catKey].monthlyStats[m] = { uniqueSoldStands: new Set(), soldDaysCount: 0, potentialDays: potCount * daysInMonth };
                     });
                 });
 
@@ -262,9 +226,7 @@
                         if (!s) return;
                         total.potentialUnits += s.potentialUnits;
                         sortedMonths.forEach(m => {
-                            if (!total.monthlyStats[m]) {
-                                total.monthlyStats[m] = { uniqueSoldStands: new Set(), soldDaysCount: 0, potentialDays: 0 };
-                            }
+                            if (!total.monthlyStats[m]) total.monthlyStats[m] = { uniqueSoldStands: new Set(), soldDaysCount: 0, potentialDays: 0 };
                             const ms = s.monthlyStats[m];
                             ms.uniqueSoldStands.forEach(id => total.monthlyStats[m].uniqueSoldStands.add(id));
                             total.monthlyStats[m].soldDaysCount += ms.soldDaysCount;
@@ -275,8 +237,7 @@
                 };
 
                 return { 
-                    months: sortedMonths, 
-                    summary, 
+                    months: sortedMonths, summary, 
                     visoMusu: calculateTotal(ORDER_MUSU, "VISO MŪSŲ"), 
                     visoSubnuoma: calculateTotal(ORDER_SUBNUOMA, "VISO SUBNUOMA"), 
                     grandTotal: calculateTotal([...ORDER_MUSU, ...ORDER_SUBNUOMA], "ABSOLIUČIAI VISKAS") 
@@ -302,35 +263,52 @@
                 });
             };
 
-            const renderRow = (s, isTotal = false) => {
+            const renderRow = (s, type = "normal") => {
                 if (!s) return null;
                 const potUnits = s.potentialUnits || 0;
+                
+                // Spalvų nustatymai pagal tipą
+                let rowBg = "bg-white";
+                let stickyBg = "bg-white";
+                let textColor = "text-gray-600";
+                
+                if (type === "musu") {
+                    rowBg = "bg-emerald-50";
+                    stickyBg = "bg-emerald-100";
+                    textColor = "text-emerald-900 font-black";
+                } else if (type === "sub") {
+                    rowBg = "bg-blue-50";
+                    stickyBg = "bg-blue-100";
+                    textColor = "text-blue-900 font-black";
+                } else if (type === "grand") {
+                    rowBg = "bg-orange-100";
+                    stickyBg = "bg-orange-200";
+                    textColor = "text-orange-900 font-black";
+                }
+
                 return (
-                    <tr key={s.name} className={`border-b border-gray-50 hover:bg-indigo-50/20 transition-colors ${isTotal ? 'bg-indigo-100 font-black text-indigo-900' : ''}`}>
-                        <td className={`p-3 border-r sticky left-0 z-10 shadow-sm ${isTotal ? 'bg-indigo-100' : 'bg-white text-gray-600 font-bold'}`}>{s.name}</td>
+                    <tr key={s.name} className={`border-b border-gray-100 hover:opacity-80 transition-opacity ${rowBg} ${type !== 'normal' ? 'font-black' : ''}`}>
+                        <td className={`p-3 border-r sticky left-0 z-10 shadow-sm ${stickyBg} ${textColor}`}>{s.name}</td>
                         {report.months.map(m => {
                             const stats = s.monthlyStats[m];
-                            const usedUnits = stats?.uniqueSoldStands.size || 0;
-                            const freeUnits = Math.max(0, potUnits - usedUnits);
-                            const unitRate = potUnits > 0 ? Math.min(100, (usedUnits / potUnits) * 100) : 0;
-                            const usedDays = stats?.soldDaysCount || 0;
                             const potDays = stats?.potentialDays || 0;
-                            const dayRate = potDays > 0 ? Math.min(100, (usedDays / potDays) * 100) : 0;
-                            const dayFreeRate = Math.max(0, 100 - dayRate);
+                            const usedDays = stats?.soldDaysCount || 0;
+                            const daysInMonth = potUnits > 0 ? (potDays / potUnits) : 30;
+                            const usedUnitsProportional = usedDays / daysInMonth;
+                            const freeUnits = Math.max(0, potUnits - usedUnitsProportional);
+                            const fillRate = potDays > 0 ? Math.min(100, (usedDays / potDays) * 100) : 0;
+                            const freeRate = 100 - fillRate;
 
                             return (
                                 <Fragment key={m}>
-                                    {/* STENDAI BLOKAS (Su nauja tvarka) */}
                                     {vis.s_pot && <td className="p-2 border-r text-center font-black text-black">{potUnits}</td>}
-                                    {vis.s_used_pct && <td className={`p-2 border-r text-center font-black ${unitRate > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>{unitRate.toFixed(1)}%</td>}
-                                    {vis.s_free && <td className={`p-2 border-r text-center font-bold text-red-600`}>{freeUnits}</td>}
-                                    {vis.s_free_pct && <td className={`p-2 border-r text-center font-bold ${unitRate < 100 ? 'text-red-600' : 'text-gray-300'}`}>{(100 - unitRate).toFixed(1)}%</td>}
-                                    
-                                    {/* KABĖJIMAS BLOKAS */}
+                                    {vis.s_used_pct && <td className={`p-2 border-r text-center font-black ${fillRate > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>{fillRate.toFixed(1)}%</td>}
+                                    {vis.s_free && <td className={`p-2 border-r text-center font-bold text-red-600`}>{freeUnits.toFixed(1)}</td>}
+                                    {vis.s_free_pct && <td className={`p-2 border-r text-center font-bold ${fillRate < 100 ? 'text-red-600' : 'text-gray-300'}`}>{freeRate.toFixed(1)}%</td>}
                                     {vis.k_pot && <td className="p-2 border-r text-center font-black text-black">{potDays}</td>}
                                     {vis.k_used && <td className={`p-2 border-r text-center font-black ${usedDays > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>{usedDays}</td>}
-                                    {vis.k_used_pct && <td className={`p-2 border-r text-center font-black ${dayRate > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>{dayRate.toFixed(1)}%</td>}
-                                    {vis.k_free_pct && <td className={`p-2 border-r text-center font-bold ${dayRate < 100 ? 'text-red-600' : 'text-gray-300'}`}>{dayFreeRate.toFixed(1)}%</td>}
+                                    {vis.k_used_pct && <td className={`p-2 border-r text-center font-black ${fillRate > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>{fillRate.toFixed(1)}%</td>}
+                                    {vis.k_free_pct && <td className={`p-2 border-r text-center font-bold ${fillRate < 100 ? 'text-red-600' : 'text-gray-300'}`}>{freeRate.toFixed(1)}%</td>}
                                 </Fragment>
                             );
                         })}
@@ -347,11 +325,11 @@
                                     <div className="bg-indigo-600 p-2 rounded-xl text-white"><IconFile /></div>
                                     <div>
                                         <h1 className="text-2xl font-black text-indigo-900 tracking-tight leading-none mb-1">STATIKA <span className="font-normal text-indigo-400 text-sm tracking-normal">PRO</span></h1>
-                                        <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest text-center">Užimtumo Analizė</p>
+                                        <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest">Užimtumo Analizė</p>
                                     </div>
                                 </div>
                                 <label className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold cursor-pointer transition-all shadow-lg shadow-indigo-100">
-                                    <IconUpload /> Įkelti failą
+                                    <IconUpload /> Įkelti duomenis
                                     <input type="file" className="hidden" onChange={handleFileUpload} accept=".xlsx,.xls,.csv" />
                                 </label>
                             </div>
@@ -363,34 +341,28 @@
                             )}
                         </div>
 
-                        {data.length > 0 && (
+                        {data.length > 0 && activeTab === "ataskaita" && (
                             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-wrap items-center gap-6 animate-in fade-in">
-                                {activeTab === "ataskaita" ? (
-                                    <>
-                                        <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Nuo mėnesio</span><input type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none" /></div>
-                                        <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Iki mėnesio</span><input type="month" value={endMonth} onChange={(e) => setEndMonth(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none" /></div>
-                                        <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Pardavimų tipas</span><select value={saleFilter} onChange={(e) => setSaleFilter(e.target.value)} className="bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none"><option value="mokamas">Tik komerciniai</option><option value="nemokamas">Tik nemokami</option><option value="bendrai">Bendrai (visi)</option></select></div>
-                                        <div className="relative mt-5">
-                                            <button onClick={() => setShowColPicker(!showColPicker)} className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-xs font-bold transition-all ${showColPicker ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white text-gray-600 border-gray-200'}`}><IconSettings /> Stulpelių rodymas</button>
-                                            {showColPicker && (
-                                                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-100 shadow-2xl rounded-2xl p-5 z-50 min-w-[400px] animate-in slide-in-from-top-2">
-                                                    <div className="grid grid-cols-2 gap-8">
-                                                        <div className="space-y-2">
-                                                            <div className="flex justify-between border-b pb-1"><span className="text-[10px] font-black text-indigo-600 uppercase">Stendai</span><button onClick={() => toggleGroup('stendai')} className="text-[9px] text-indigo-400 font-bold underline decoration-dotted">Perjungti</button></div>
-                                                            {[{id:'s_pot',l:'Galimybė'},{id:'s_used_pct',l:'Išnaudota %'},{id:'s_free',l:'Laisvi'},{id:'s_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:text-indigo-600 py-1"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} className="rounded border-gray-300 text-indigo-600" />{c.l}</label>))}
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <div className="flex justify-between border-b pb-1"><span className="text-[10px] font-black text-amber-600 uppercase">Kabėjimas</span><button onClick={() => toggleGroup('kabėjimas')} className="text-[9px] text-amber-400 font-bold underline decoration-dotted">Perjungti</button></div>
-                                                            {[{id:'k_pot',l:'Galimybė'},{id:'k_used',l:'Išnaudota'},{id:'k_used_pct',l:'Išnaudojimo %'},{id:'k_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:text-amber-600 py-1"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} className="rounded border-gray-300 text-amber-600" />{c.l}</label>))}
-                                                        </div>
-                                                    </div>
+                                <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Nuo</span><input type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none" /></div>
+                                <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Iki</span><input type="month" value={endMonth} onChange={(e) => setEndMonth(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none" /></div>
+                                <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Tipas</span><select value={saleFilter} onChange={(e) => setSaleFilter(e.target.value)} className="bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none"><option value="mokamas">Tik komerciniai</option><option value="nemokamas">Tik nemokami</option><option value="bendrai">Bendrai (visi)</option></select></div>
+                                <div className="relative mt-5">
+                                    <button onClick={() => setShowColPicker(!showColPicker)} className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-xs font-bold transition-all ${showColPicker ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white text-gray-600 border-gray-200'}`}><IconSettings /> Stulpelių rodymas</button>
+                                    {showColPicker && (
+                                        <div className="absolute top-full left-0 mt-2 bg-white border border-gray-100 shadow-2xl rounded-2xl p-5 z-50 min-w-[400px] animate-in slide-in-from-top-2">
+                                            <div className="grid grid-cols-2 gap-8">
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between border-b pb-1"><span className="text-[10px] font-black text-indigo-600 uppercase">Stendai</span><button onClick={() => toggleGroup('stendai')} className="text-[9px] text-indigo-400 font-bold underline decoration-dotted">Perjungti</button></div>
+                                                    {[{id:'s_pot',l:'Galimybė'},{id:'s_used_pct',l:'Išnaudota %'},{id:'s_free',l:'Laisvi'},{id:'s_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:text-indigo-600 py-1"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} className="rounded border-gray-300 text-indigo-600" />{c.l}</label>))}
                                                 </div>
-                                            )}
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between border-b pb-1"><span className="text-[10px] font-black text-amber-600 uppercase">Kabėjimas</span><button onClick={() => toggleGroup('kabėjimas')} className="text-[9px] text-amber-400 font-bold underline decoration-dotted">Perjungti</button></div>
+                                                    {[{id:'k_pot',l:'Galimybė'},{id:'k_used',l:'Išnaudota'},{id:'k_used_pct',l:'Išnaudojimo %'},{id:'k_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:text-amber-600 py-1"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} className="rounded border-gray-300 text-amber-600" />{c.l}</label>))}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </>
-                                ) : (
-                                    <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase">Miestas</span><select value={filterCity} onChange={(e) => setFilterCity(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold min-w-[150px] outline-none">{filterOptions.cities.map(city => <option key={city} value={city}>{city}</option>)}</select></div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         )}
 
@@ -419,7 +391,6 @@
                                                             {vis.s_used_pct && <th className="p-1 border-r w-16 text-emerald-600 font-black">Išnaudota %</th>}
                                                             {vis.s_free && <th className="p-1 border-r w-16 text-red-600 font-black">Laisvi</th>}
                                                             {vis.s_free_pct && <th className="p-1 border-r w-16 text-red-600">Laisvi %</th>}
-                                                            
                                                             {vis.k_pot && <th className="p-1 border-r w-20">Galimybė</th>}
                                                             {vis.k_used && <th className="p-1 border-r w-20 text-emerald-600 font-black">Išnaudota</th>}
                                                             {vis.k_used_pct && <th className="p-1 border-r w-20 text-emerald-600 font-black">Išnaudojimo %</th>}
@@ -431,12 +402,12 @@
                                             <tbody>
                                                 <tr className="bg-gray-100/30"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] text-gray-400 uppercase tracking-widest border-b text-indigo-900">MŪSŲ</td></tr>
                                                 {ORDER_MUSU.map(c => renderRow(report.summary[c.toLowerCase()]))}
-                                                {renderRow(report.visoMusu, true)}
+                                                {renderRow(report.visoMusu, "musu")}
                                                 <tr className="bg-gray-100/30"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] text-gray-400 uppercase tracking-widest border-b border-t text-indigo-900">SUBNUOMA</td></tr>
                                                 {ORDER_SUBNUOMA.map(c => renderRow(report.summary[c.toLowerCase()]))}
-                                                {renderRow(report.visoSubnuoma, true)}
-                                                <tr className="bg-indigo-900 text-white"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-2 px-4 font-black text-[10px] uppercase tracking-widest text-center">VISI REZULTATAI</td></tr>
-                                                {renderRow(report.grandTotal, true)}
+                                                {renderRow(report.visoSubnuoma, "sub")}
+                                                <tr className="bg-gray-800 text-white"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-2 px-4 font-black text-[10px] uppercase tracking-widest text-center">GALUTINIAI REZULTATAI</td></tr>
+                                                {renderRow(report.grandTotal, "grand")}
                                             </tbody>
                                         </table>
                                     </div>
@@ -447,7 +418,7 @@
                                                 <tr><th className="p-4 border-r">Būsena</th><th className="p-4 border-r">Kodas</th><th className="p-4 border-r">Miestas</th><th className="p-4 border-r min-w-[200px]">Adresas</th><th className="p-4 border-r">Kategorija</th></tr>
                                             </thead>
                                             <tbody>
-                                                {standList.map((stand, i) => (
+                                                {standInventory.size > 0 ? Array.from(standInventory.values()).map((stand, i) => (
                                                     <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                                                         <td className="p-3 border-r whitespace-nowrap"><span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border ${stand.status === "Aktyvus" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : stand.status === "Neaktyvus" ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-amber-50 text-amber-600 border-amber-100"}`}>{stand.status}</span></td>
                                                         <td className="p-3 border-r font-mono font-bold text-gray-900">{stand.kodas}</td>
@@ -455,7 +426,7 @@
                                                         <td className="p-3 border-r text-gray-400 italic text-[11px] truncate max-w-[250px]">{stand.adresas}</td>
                                                         <td className="p-3 text-indigo-500 font-black uppercase text-[10px] tracking-tighter">{stand.kategorija}</td>
                                                     </tr>
-                                                ))}
+                                                )) : <tr><td colSpan="5" className="p-10 text-center text-gray-400">Įkelkite failą, kad matytumėte registrą</td></tr>}
                                             </tbody>
                                         </table>
                                     </div>
@@ -465,7 +436,7 @@
                             !loading && (
                                 <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 py-40 text-center shadow-inner animate-in fade-in">
                                     <div className="bg-indigo-50 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6 text-indigo-300"><IconFile /></div>
-                                    <h2 className="text-2xl font-black text-indigo-900 mb-2 uppercase tracking-widest tracking-tight leading-none">Statikos užimtumo ataskaitos</h2>
+                                    <h2 className="text-2xl font-black text-indigo-900 mb-2 uppercase tracking-widest tracking-tight leading-none text-center">Statikos užimtumo ataskaitos</h2>
                                     <p className="text-gray-400 text-sm max-w-xs mx-auto leading-relaxed italic mt-2">Įkelkite „Eksportas_Statika.xlsx“ failą, kad pamatytumėte rodiklius.</p>
                                 </div>
                             )
