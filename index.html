@@ -10,6 +10,8 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- PDF generavimo biblioteka -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -19,6 +21,10 @@
         ::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #818cf8; }
         .row-expand-transition { transition: all 0.3s ease-in-out; }
+        
+        /* PDF optimizacija: paslepiam nereikalingus elementus eksporto metu */
+        .pdf-content table { border-collapse: collapse !important; width: 100% !important; table-layout: auto !important; }
+        .pdf-content thead th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -29,7 +35,8 @@
 
         const IconFile = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>;
         const IconUpload = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>;
-        const IconSettings = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+        const IconDownload = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+        const IconSettings = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
         const IconChevron = ({ expanded }) => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}><polyline points="9 18 15 12 9 6"/></svg>;
 
         const App = () => {
@@ -45,7 +52,6 @@
             const [saleFilter, setSaleFilter] = useState("mokamas");
             const [ordersMonth, setOrdersMonth] = useState("2026-01");
 
-            // Išskleistų užsakymų ID (pavadinimų) rinkinys
             const [expandedOrders, setExpandedOrders] = useState(new Set());
 
             const [vis, setVis] = useState({
@@ -60,6 +66,21 @@
                 if (newExpanded.has(name)) newExpanded.delete(name);
                 else newExpanded.add(name);
                 setExpandedOrders(newExpanded);
+            };
+
+            const handleDownloadPDF = () => {
+                const element = document.getElementById('report-content');
+                if (!element) return;
+
+                const options = {
+                    margin: [10, 10, 10, 10],
+                    filename: `Statika_Ataskaita_${activeTab}_${new Date().toISOString().split('T')[0]}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, logging: false },
+                    jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
+                };
+
+                html2pdf().from(element).set(options).save();
             };
 
             const formatDate = (val) => {
@@ -260,7 +281,6 @@
                 return { months: sortedMonths, baseMonth: baseMonthStr, summary, visoMusu: calculateTotal(ORDER_MUSU, "VISO MŪSŲ"), visoSubnuoma: calculateTotal(ORDER_SUBNUOMA, "VISO SUBNUOMA"), grandTotal: calculateTotal([...ORDER_MUSU, ...ORDER_SUBNUOMA], "ABSOLIUČIAI VISKAS") };
             }, [data, startMonth, endMonth, standInventory, saleFilter]);
 
-            // UŽSAKYMŲ LAPO LOGIKA (SU IŠPLĖSTINIAIS STENDAIS)
             const ordersReport = useMemo(() => {
                 if (!data.length) return [];
                 const ordersMap = new Map();
@@ -281,14 +301,13 @@
                             type: row.SaleType, 
                             startDate: row.Data, 
                             endDate: row.Data,
-                            stands: new Map() // Unikalūs stendai šiam užsakymui
+                            stands: new Map() 
                         });
                     }
                     const entry = ordersMap.get(pName);
                     if (row.Data < entry.startDate) entry.startDate = row.Data;
                     if (row.Data > entry.endDate) entry.endDate = row.Data;
                     
-                    // Fiksuojame stendo informaciją
                     if (!entry.stands.has(row.Kodas)) {
                         entry.stands.set(row.Kodas, {
                             kodas: row.Kodas,
@@ -356,13 +375,9 @@
                                 const prevDaysInMonth = potUnits > 0 ? (prevPotDays / potUnits) : 30;
                                 const prevUsedUnitsProportional = prevUsedDays / prevDaysInMonth;
                                 const prevFreeUnits = Math.max(0, potUnits - prevUsedUnitsProportional);
-                                
-                                // SKAIČIUOJAME POKYTĮ SU VIENU SKAITMENIU PO KABLELIO
                                 const diff = freeUnits - prevFreeUnits;
-                                
                                 if (prevPotDays > 0) {
                                     const formattedDiff = diff.toFixed(1);
-                                    // Tikriname ar reikšmė nėra tiesiog 0 po suapvalinimo
                                     if (Math.abs(diff) < 0.05) {
                                         changeDisplay = "0.0";
                                         changeCellClass = "text-gray-400";
@@ -395,7 +410,7 @@
             return (
                 <div className="min-h-screen bg-gray-50 p-4 md:p-8">
                     <div className="max-w-full mx-auto">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6 no-print">
                             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                                 <div className="flex items-center gap-3">
                                     <div className="bg-indigo-600 p-2 rounded-xl text-white"><IconFile /></div>
@@ -404,10 +419,18 @@
                                         <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest text-center">Užimtumo Analizė</p>
                                     </div>
                                 </div>
-                                <label className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold cursor-pointer transition-all shadow-lg shadow-indigo-100">
-                                    <IconUpload /> Įkelti failą
-                                    <input type="file" className="hidden" onChange={handleFileUpload} accept=".xlsx,.xls,.csv" />
-                                </label>
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={handleDownloadPDF}
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl text-sm font-bold transition-all border border-indigo-100 shadow-sm"
+                                    >
+                                        <IconDownload /> Atsisiųsti PDF
+                                    </button>
+                                    <label className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold cursor-pointer transition-all shadow-lg shadow-indigo-100">
+                                        <IconUpload /> Įkelti failą
+                                        <input type="file" className="hidden" onChange={handleFileUpload} accept=".xlsx,.xls,.csv" />
+                                    </label>
+                                </div>
                             </div>
                             {data.length > 0 && (
                                 <div className="flex border-b border-gray-100 mt-6 overflow-x-auto whitespace-nowrap">
@@ -419,8 +442,8 @@
                         </div>
 
                         {data.length > 0 ? (
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in">
-                                <div className="bg-white p-4 border-b flex flex-wrap items-center gap-6">
+                            <div id="report-content" className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in pdf-content">
+                                <div className="bg-white p-4 border-b flex flex-wrap items-center gap-6 no-print">
                                     {activeTab === "ataskaita" && (
                                         <>
                                             <div className="flex flex-col gap-1"><span className="text-[10px] text-gray-400 font-black uppercase">Nuo</span><input type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none" /></div>
@@ -435,7 +458,7 @@
                                     )}
                                     {(activeTab === "ataskaita" || activeTab === "uzsakymai") && (
                                         <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] text-gray-400 font-black uppercase">Analitikos tipas</span>
+                                            <span className="text-[10px] text-gray-400 font-black uppercase">Pardavimų tipas</span>
                                             <select value={saleFilter} onChange={(e) => setSaleFilter(e.target.value)} className="bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none">
                                                 <option value="mokamas">Tik komerciniai</option>
                                                 <option value="nemokamas">Tik nemokami</option>
@@ -514,7 +537,7 @@
                                         <table className="w-full text-xs text-left border-collapse">
                                             <thead className="bg-gray-50 border-b font-bold uppercase text-[9px] text-gray-500 tracking-widest sticky top-0 z-20 shadow-sm">
                                                 <tr>
-                                                    <th className="p-4 border-r w-12"></th>
+                                                    <th className="p-4 border-r w-12 no-print"></th>
                                                     <th className="p-4 border-r">Pardavimas</th>
                                                     <th className="p-4 border-r w-32 text-center">Nuo</th>
                                                     <th className="p-4 border-r w-32 text-center">Iki</th>
@@ -529,7 +552,7 @@
                                                             className={`border-b border-gray-100 hover:bg-indigo-50/50 cursor-pointer transition-colors ${expandedOrders.has(order.name) ? 'bg-indigo-50' : 'bg-white'}`}
                                                             onClick={() => toggleOrderExpansion(order.name)}
                                                         >
-                                                            <td className="p-3 border-r text-center"><IconChevron expanded={expandedOrders.has(order.name)} /></td>
+                                                            <td className="p-3 border-r text-center no-print"><IconChevron expanded={expandedOrders.has(order.name)} /></td>
                                                             <td className="p-3 border-r font-bold text-gray-700">{order.name}</td>
                                                             <td className="p-3 border-r text-center font-mono text-gray-500 italic">{order.startDate}</td>
                                                             <td className="p-3 border-r text-center font-mono text-gray-500 italic">{order.endDate}</td>
@@ -541,7 +564,7 @@
                                                             </td>
                                                         </tr>
                                                         {expandedOrders.has(order.name) && (
-                                                            <tr>
+                                                            <tr className="no-print-row">
                                                                 <td colSpan="6" className="bg-gray-50 p-4 border-b border-gray-200 shadow-inner">
                                                                     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden max-w-4xl mx-auto">
                                                                         <div className="bg-gray-100 p-2 px-4 text-[10px] font-black uppercase text-gray-500 border-b">Stendų sąrašas ({order.name})</div>
