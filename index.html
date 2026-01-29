@@ -78,14 +78,28 @@
             const getSaleType = (text) => {
                 if (!text) return "laisva";
                 const cleanText = text.toString().trim();
-                const isExplicitlyFree = /LT advert|savireklama/i.test(cleanText) || /SOCN$|{N}$/.test(cleanText);
-                if (isExplicitlyFree) return "nemokamas";
+                
+                // 1. REZERVACIJOS (Aukščiausias prioritetas) - R su skaičiumi 1-9 pabaigoje
+                if (/R[1-9](\s+iki\s+\d{2}-\d{2})?\.?$/i.test(cleanText)) return "rezervacija";
 
+                // 2. Išimtys (Savininko reklama / žodis nemokamas)
+                if (/Savininko reklama|nemokamas/i.test(cleanText)) return "nemokamas";
+
+                // 3. Griežtos nemokamos žymos
+                if (/{N}|{SOCN}/i.test(cleanText)) return "nemokamas";
+                if (/LT advert|savireklama/i.test(cleanText)) return "nemokamas";
+
+                // 4. Griežtos komercinės žymos
+                if (/{R}|{S}/i.test(cleanText)) return "mokamas";
+
+                // 5. Standartiniai komerciniai kriterijai (4 skaitmenys + inicialai)
                 const hasOrderNumber = /\b\d{4}\b/.test(cleanText);
                 const initialsMatch = cleanText.match(/[A-Z]\.\s*[A-Z]\./g) || [];
-                const hasValidInitials = initialsMatch.some(init => init.replace(/\s/g, '') !== 'R.P.');
+                const hasValidInitials = initialsMatch.some(init => init.replace(/\s/g, '').toUpperCase() !== 'R.P.');
 
                 if (hasOrderNumber && hasValidInitials) return "mokamas";
+
+                // 6. Visa kita - nemokama
                 return "nemokamas";
             };
 
@@ -170,7 +184,6 @@
                 if (!data.length || !startMonth || !endMonth) return null;
                 const summary = {};
                 
-                // Mėnesiai, kuriuos rodome
                 const start = new Date(startMonth + "-01");
                 const end = new Date(endMonth + "-01");
                 const sortedMonths = [];
@@ -180,7 +193,6 @@
                     currentM.setMonth(currentM.getMonth() + 1);
                 }
 
-                // Apskaičiuojame bazinį mėnesį (prieš startMonth), kad visada matytume pokytį
                 const baseMonthDate = new Date(startMonth + "-01");
                 baseMonthDate.setMonth(baseMonthDate.getMonth() - 1);
                 const baseMonthStr = baseMonthDate.toISOString().substring(0, 7);
@@ -209,7 +221,20 @@
                     if (!stats) return;
                     const client = row.Pardavimas;
                     if (!client || client.toString().trim().length === 0) return;
-                    const matchesFilter = saleFilter === "bendrai" || row.SaleType === saleFilter;
+                    
+                    // PAGRINDINĖ FILTRAVIMO LOGIKA ANALITIKAI
+                    let matchesFilter = false;
+                    if (saleFilter === "mokamas") {
+                        matchesFilter = row.SaleType === "mokamas";
+                    } else if (saleFilter === "nemokamas") {
+                        matchesFilter = row.SaleType === "nemokamas";
+                    } else if (saleFilter === "rezervacija") {
+                        matchesFilter = row.SaleType === "rezervacija";
+                    } else if (saleFilter === "bendrai") {
+                        // Rezervacijos visai netraukiamos į bendrą sumą
+                        matchesFilter = (row.SaleType === "mokamas" || row.SaleType === "nemokamas");
+                    }
+
                     if (matchesFilter) {
                         stats.uniqueSoldStands.add(row.Kodas);
                         stats.soldDaysCount += 1;
@@ -249,7 +274,15 @@
                 data.forEach(row => {
                     const pName = (row.Pardavimas || "").toString().trim();
                     if (!pName || !row.Data) return;
-                    if (saleFilter !== "bendrai" && row.SaleType !== saleFilter) return;
+                    
+                    // Čia rodome pagal pasirinktą filtrą, bet "bendrai" rodys viską išskyrus rezervacijas (arba viską, priklausomai nuo poreikio lapui)
+                    // Vartotojas prašė analitikoje netraukti, tai užsakymų lape elgiamės taip pat:
+                    let matches = false;
+                    if (saleFilter === "bendrai") matches = (row.SaleType === "mokamas" || row.SaleType === "nemokamas");
+                    else matches = (row.SaleType === saleFilter);
+
+                    if (!matches) return;
+
                     if (!ordersMap.has(pName)) {
                         ordersMap.set(pName, { name: pName, type: row.SaleType, startDate: row.Data, endDate: row.Data });
                     } else {
@@ -268,6 +301,7 @@
             }, [vis]);
 
             const monthNames = { "01": "Sausis", "02": "Vasaris", "03": "Kovas", "04": "Balandis", "05": "Gegužė", "06": "Birželis", "07": "Liepa", "08": "Rugpjūtis", "09": "Rugsėjis", "10": "Spalis", "11": "Lapkritis", "12": "Gruodis" };
+            const shortMonthNames = { "01": "sau", "02": "vas", "03": "kov", "04": "bal", "05": "geg", "06": "bir", "07": "lie", "08": "rugp", "09": "rugs", "10": "spa", "11": "lap", "12": "gruo" };
 
             const toggleCol = (key) => setVis(prev => ({ ...prev, [key]: !prev[key] }));
             const toggleGroup = (group) => {
@@ -305,7 +339,6 @@
                             const fillRate = potDays > 0 ? Math.min(100, (usedDays / potDays) * 100) : 0;
                             const freeRate = 100 - fillRate;
 
-                            // Patobulintas pokyčio skaičiavimas
                             let changeDisplay = "-";
                             let changeCellClass = "";
                             const prevMonthStr = mIdx === 0 ? report.baseMonth : report.months[mIdx - 1];
@@ -322,7 +355,6 @@
                                 
                                 if (prevPotDays > 0) {
                                     changeDisplay = diff > 0 ? `+${diff}` : `${diff}`;
-                                    // Atvirkštinė logika: + yra blogai (Raudona), - yra gerai (Žalia)
                                     if (diff > 0) changeCellClass = "bg-red-500 text-white font-black";
                                     else if (diff < 0) changeCellClass = "bg-emerald-500 text-white font-black";
                                     else changeCellClass = "text-gray-400";
@@ -334,12 +366,14 @@
 
                             return (
                                 <Fragment key={m}>
+                                    {/* STENDAI BLOKAS */}
                                     {vis.s_pot && <td className={`p-2 border-r text-center font-black text-black ${colColor}`}>{potUnits}</td>}
                                     {vis.s_used_pct && <td className={`p-2 border-r text-center font-black ${fillRate > 0 ? 'text-emerald-600' : 'text-gray-300'} ${colColor}`}>{fillRate.toFixed(1)}%</td>}
                                     {vis.s_change && <td className={`p-2 border-r text-center ${changeCellClass} ${changeCellClass === "" ? colColor : ""}`}>{changeDisplay}</td>}
                                     {vis.s_free && <td className={`p-2 border-r text-center font-bold text-red-600 ${colColor}`}>{freeUnits.toFixed(1)}</td>}
                                     {vis.s_free_pct && <td className={`p-2 border-r text-center font-bold ${fillRate < 100 ? 'text-red-600' : 'text-gray-300'} ${colColor}`}>{freeRate.toFixed(1)}%</td>}
                                     
+                                    {/* KABĖJIMAS BLOKAS */}
                                     {vis.k_pot && <td className={`p-2 border-r text-center font-black text-black ${colColor}`}>{potDays}</td>}
                                     {vis.k_used && <td className={`p-2 border-r text-center font-black ${usedDays > 0 ? 'text-emerald-600' : 'text-gray-300'} ${colColor}`}>{usedDays}</td>}
                                     {vis.k_used_pct && <td className={`p-2 border-r text-center font-black ${fillRate > 0 ? 'text-emerald-600' : 'text-gray-300'} ${colColor}`}>{fillRate.toFixed(1)}%</td>}
@@ -388,8 +422,14 @@
                                     )}
                                     {(activeTab === "ataskaita" || activeTab === "uzsakymai") && (
                                         <div className="flex flex-col gap-1">
-                                            <span className="text-[10px] text-gray-400 font-black uppercase">Tipas</span>
-                                            <select value={saleFilter} onChange={(e) => setSaleFilter(e.target.value)} className="bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none"><option value="mokamas">Tik komerciniai</option><option value="nemokamas">Tik nemokami</option><option value="bendrai">Bendrai (visi)</option></select>
+                                            <span className="text-[10px] text-gray-400 font-black uppercase">Analitikos tipas</span>
+                                            <select value={saleFilter} onChange={(e) => setSaleFilter(e.target.value)} className="bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-1.5 text-sm font-bold text-indigo-700 outline-none">
+                                                <option value="mokamas">Tik komerciniai</option>
+                                                <option value="nemokamas">Tik nemokami</option>
+                                                <option value="bendrai">Bendrai (Mokami + Nemokami)</option>
+                                                <option value="rezervacija">Tik rezervacijos</option>
+                                            </select>
+                                            <p className="text-[9px] text-indigo-400 italic">Rezervacijos į bendrą sumą netraukiamos.</p>
                                         </div>
                                     )}
                                     {activeTab === "ataskaita" && (
@@ -446,7 +486,20 @@
                                                             <Fragment key={`${m}-d`}>
                                                                 {vis.s_pot && <th className={`p-1 border-r w-16 ${cellBg}`}>Galimybė</th>}
                                                                 {vis.s_used_pct && <th className={`p-1 border-r w-16 text-emerald-600 font-black ${cellBg}`}>Išnaudota %</th>}
-                                                                {vis.s_change && <th className={`p-1 border-r w-16 ${cellBg}`}>Pokytis</th>}
+                                                                {vis.s_change && (
+                                                                    <th className={`p-1 border-r w-16 ${cellBg}`}>
+                                                                        <div className="flex flex-col leading-tight">
+                                                                            <span>Pokytis</span>
+                                                                            <span className="text-[7px] font-normal lowercase opacity-70">
+                                                                                nuo {(() => {
+                                                                                    const prevMonthStr = mIdx === 0 ? report.baseMonth : report.months[mIdx - 1];
+                                                                                    const [y, mon] = prevMonthStr.split('-');
+                                                                                    return `${y.slice(-2)}-${shortMonthNames[mon]}`;
+                                                                                })()}.
+                                                                            </span>
+                                                                        </div>
+                                                                    </th>
+                                                                )}
                                                                 {vis.s_free && <th className={`p-1 border-r w-16 text-red-600 font-black ${cellBg}`}>Laisvi</th>}
                                                                 {vis.s_free_pct && <th className={`p-1 border-r w-16 text-red-600 ${cellBg}`}>Laisvi %</th>}
                                                                 {vis.k_pot && <th className={`p-1 border-r w-20 ${cellBg}`}>Galimybė</th>}
@@ -459,13 +512,13 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <tr className="bg-gray-100/30"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] text-gray-400 uppercase tracking-widest border-b text-indigo-900">MŪSŲ</td></tr>
+                                                <tr className="bg-gray-100/30"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] text-gray-400 uppercase tracking-widest border-b text-indigo-900 text-center">MŪSŲ</td></tr>
                                                 {ORDER_MUSU.map(c => renderRow(report.summary[c.toLowerCase()]))}
                                                 {renderRow(report.visoMusu, "musu")}
-                                                <tr className="bg-gray-100/30"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] text-gray-400 uppercase tracking-widest border-b border-t text-indigo-900">SUBNUOMA</td></tr>
+                                                <tr className="bg-gray-100/30"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-1.5 px-4 font-black text-[9px] text-gray-400 uppercase tracking-widest border-b border-t text-indigo-900 text-center">SUBNUOMA</td></tr>
                                                 {ORDER_SUBNUOMA.map(c => renderRow(report.summary[c.toLowerCase()]))}
                                                 {renderRow(report.visoSubnuoma, "sub")}
-                                                <tr className="bg-gray-800 text-white"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-2 px-4 font-black text-[10px] uppercase tracking-widest text-center">GALUTINIAI REZULTATAI</td></tr>
+                                                <tr className="bg-gray-800 text-white"><td colSpan={1 + (report.months.length * monthColSpan.total)} className="p-2 px-4 font-black text-[10px] uppercase tracking-widest text-center">GALUTINIAI REZULTATAI (BE REZERVACIJŲ)</td></tr>
                                                 {renderRow(report.grandTotal, "grand")}
                                             </tbody>
                                         </table>
@@ -482,7 +535,15 @@
                                                         <td className="p-3 border-r font-bold text-gray-700">{order.name}</td>
                                                         <td className="p-3 border-r text-center font-mono text-gray-500 italic">{order.startDate}</td>
                                                         <td className="p-3 border-r text-center font-mono text-gray-500 italic">{order.endDate}</td>
-                                                        <td className="p-3 text-center"><span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${order.type === "mokamas" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-orange-50 text-orange-600 border-orange-100"}`}>{order.type}</span></td>
+                                                        <td className="p-3 text-center">
+                                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${
+                                                                order.type === "mokamas" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
+                                                                order.type === "rezervacija" ? "bg-slate-50 text-slate-500 border-slate-200" :
+                                                                "bg-orange-50 text-orange-600 border-orange-100"
+                                                            }`}>
+                                                                {order.type}
+                                                            </span>
+                                                        </td>
                                                     </tr>
                                                 )) : <tr><td colSpan="4" className="p-10 text-center text-gray-400 italic">Užsakymų nerasta</td></tr>}
                                             </tbody>
@@ -514,7 +575,7 @@
                                 <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 py-40 text-center shadow-inner animate-in fade-in">
                                     <div className="bg-indigo-50 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6 text-indigo-300"><IconFile /></div>
                                     <h2 className="text-2xl font-black text-indigo-900 mb-2 uppercase tracking-widest tracking-tight leading-none text-center">Statikos užimtumo ataskaitos</h2>
-                                    <p className="text-gray-400 text-sm max-w-xs mx-auto leading-relaxed italic mt-2">Įkelkite failą rodikliams pamatyti.</p>
+                                    <p className="text-gray-400 text-sm max-w-xs mx-auto leading-relaxed italic mt-2">Įkelkite „Eksportas_Statika.xlsx“ failą analizei.</p>
                                 </div>
                             )
                         )}
