@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Statikos užimtumo ataskaitos</title>
+    <title>Statikos užimtumo ataskaitos | LT ADVERT</title>
     <!-- Bibliotekos iš CDN -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -22,9 +22,13 @@
         ::-webkit-scrollbar-thumb:hover { background: #818cf8; }
         .row-expand-transition { transition: all 0.3s ease-in-out; }
         
-        /* PDF optimizacija: paslepiam nereikalingus elementus eksporto metu */
+        /* PDF optimizacija */
         .pdf-content table { border-collapse: collapse !important; width: 100% !important; table-layout: auto !important; }
-        .pdf-content thead th { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+        .pdf-header { display: none; }
+        @media print {
+            .no-print { display: none !important; }
+            .pdf-header { display: flex !important; }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -32,6 +36,21 @@
 
     <script type="text/babel">
         const { useState, useMemo, useEffect, Fragment } = React;
+
+        // Įmonės LOGO komponentas (SVG iš atsiųsto paveiksliuko)
+        const Logo = ({ className = "h-12" }) => (
+            <svg viewBox="0 0 350 85" className={className} xmlns="http://www.w3.org/2000/svg">
+                {/* Billboard piktograma */}
+                <path d="M5 35 H28 V12 H5 Z" stroke="#4cb848" strokeWidth="2.5" fill="none" />
+                <path d="M16.5 35 V48" stroke="#4cb848" strokeWidth="2.5" fill="none" />
+                {/* Žalia linija */}
+                <path d="M5 48 H340" stroke="#4cb848" strokeWidth="1.5" />
+                {/* Pagrindinis tekstas */}
+                <text x="42" y="38" fill="#4cb848" style={{ font: '900 38px Inter, sans-serif' }}>LT ADVERT</text>
+                {/* Subtekstas */}
+                <text x="7" y="68" fill="#222" style={{ font: '700 13px Inter, sans-serif', letterSpacing: '4.5px' }}>LAUKO REKLAMOS SPRENDIMAI</text>
+            </svg>
+        );
 
         const IconFile = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>;
         const IconUpload = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>;
@@ -72,15 +91,22 @@
                 const element = document.getElementById('report-content');
                 if (!element) return;
 
+                // Pridedame laikiną klasę, kad būtų matomas PDF headeris eksporto metu
+                const header = element.querySelector('.pdf-header');
+                if (header) header.style.display = 'flex';
+
                 const options = {
                     margin: [10, 10, 10, 10],
-                    filename: `Statika_Ataskaita_${activeTab}_${new Date().toISOString().split('T')[0]}.pdf`,
+                    filename: `LT_ADVERT_Ataskaita_${activeTab}_${new Date().toISOString().split('T')[0]}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, useCORS: true, logging: false },
                     jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
                 };
 
-                html2pdf().from(element).set(options).save();
+                html2pdf().from(element).set(options).toPdf().get('pdf').then((pdf) => {
+                    // Atstatome headerio paslėpimą po generavimo
+                    if (header) header.style.display = '';
+                }).save();
             };
 
             const formatDate = (val) => {
@@ -413,10 +439,10 @@
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-6 no-print">
                             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="bg-indigo-600 p-2 rounded-xl text-white"><IconFile /></div>
-                                    <div>
-                                        <h1 className="text-2xl font-black text-indigo-900 tracking-tight leading-none mb-1">STATIKA <span className="font-normal text-indigo-400 text-sm tracking-normal">PRO</span></h1>
-                                        <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest text-center">Užimtumo Analizė</p>
+                                    <Logo />
+                                    <div className="border-l pl-4 border-gray-200">
+                                        <h1 className="text-xl font-black text-indigo-900 tracking-tight leading-none mb-1 uppercase">Statika <span className="font-normal text-indigo-400 text-sm tracking-normal capitalize">PRO</span></h1>
+                                        <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest text-left">Užimtumo Analizė</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-3">
@@ -443,6 +469,26 @@
 
                         {data.length > 0 ? (
                             <div id="report-content" className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in pdf-content">
+                                {/* PDF HEADERIS (matomas tik PDF'e) */}
+                                <div className="pdf-header hidden flex-col border-b-4 border-emerald-500 p-8 mb-4 bg-white">
+                                    <div className="flex justify-between items-start">
+                                        <Logo className="h-16" />
+                                        <div className="text-right">
+                                            <h2 className="text-2xl font-black text-gray-900 uppercase">Užimtumo Suvestinė</h2>
+                                            <p className="text-gray-500 font-bold uppercase text-xs tracking-widest mt-1">Generuota: {new Date().toLocaleDateString('lt-LT')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-8 flex gap-8 text-xs font-bold uppercase text-gray-600">
+                                        <div><span className="text-gray-400">Ataskaita:</span> {activeTab === "ataskaita" ? "Mėnesių suvestinė" : "Užsakymų lapas"}</div>
+                                        <div><span className="text-gray-400">Tipas:</span> {saleFilter.toUpperCase()}</div>
+                                        {activeTab === "ataskaita" ? (
+                                            <div><span className="text-gray-400">Laikotarpis:</span> {startMonth} iki {endMonth}</div>
+                                        ) : (
+                                            <div><span className="text-gray-400">Mėnuo:</span> {ordersMonth}</div>
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div className="bg-white p-4 border-b flex flex-wrap items-center gap-6 no-print">
                                     {activeTab === "ataskaita" && (
                                         <>
@@ -558,7 +604,9 @@
                                                             <td className="p-3 border-r text-center font-mono text-gray-500 italic">{order.endDate}</td>
                                                             <td className="p-3 border-r text-center font-black text-indigo-600">{order.standsCount}</td>
                                                             <td className="p-3 text-center">
-                                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${order.type === "mokamas" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : order.type === "rezervacija" ? "bg-slate-50 text-slate-500 border-slate-200" : "bg-orange-50 text-orange-600 border-orange-100"}`}>
+                                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${
+                                                                    order.type === "mokamas" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : order.type === "rezervacija" ? "bg-slate-50 text-slate-500 border-slate-200" : "bg-orange-50 text-orange-600 border-orange-100"
+                                                                }`}>
                                                                     {order.type}
                                                                 </span>
                                                             </td>
