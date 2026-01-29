@@ -356,12 +356,21 @@
                                 const prevDaysInMonth = potUnits > 0 ? (prevPotDays / potUnits) : 30;
                                 const prevUsedUnitsProportional = prevUsedDays / prevDaysInMonth;
                                 const prevFreeUnits = Math.max(0, potUnits - prevUsedUnitsProportional);
-                                const diff = Math.round(freeUnits - prevFreeUnits);
+                                
+                                // SKAIČIUOJAME POKYTĮ SU VIENU SKAITMENIU PO KABLELIO
+                                const diff = freeUnits - prevFreeUnits;
+                                
                                 if (prevPotDays > 0) {
-                                    changeDisplay = diff > 0 ? `+${diff}` : `${diff}`;
-                                    if (diff > 0) changeCellClass = "bg-red-500 text-white font-black";
-                                    else if (diff < 0) changeCellClass = "bg-emerald-500 text-white font-black";
-                                    else changeCellClass = "text-gray-400";
+                                    const formattedDiff = diff.toFixed(1);
+                                    // Tikriname ar reikšmė nėra tiesiog 0 po suapvalinimo
+                                    if (Math.abs(diff) < 0.05) {
+                                        changeDisplay = "0.0";
+                                        changeCellClass = "text-gray-400";
+                                    } else {
+                                        changeDisplay = diff > 0 ? `+${formattedDiff}` : `${formattedDiff}`;
+                                        if (diff > 0) changeCellClass = "bg-red-500 text-white font-black";
+                                        else changeCellClass = "bg-emerald-500 text-white font-black";
+                                    }
                                 }
                             }
                             const colColor = mIdx % 2 === 0 ? 'bg-black/5' : '';
@@ -410,7 +419,7 @@
                         </div>
 
                         {data.length > 0 ? (
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in">
                                 <div className="bg-white p-4 border-b flex flex-wrap items-center gap-6">
                                     {activeTab === "ataskaita" && (
                                         <>
