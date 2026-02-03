@@ -16,9 +16,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        window.fb = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, doc, setDoc, onSnapshot, getDoc, collection };
+        window.fb = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, doc, setDoc, onSnapshot, getDoc, collection, addDoc };
     </script>
 
     <style>
@@ -47,10 +47,9 @@
     <script type="text/babel">
         const { useState, useMemo, useEffect, Fragment } = React;
 
-        // Saugi konfigūracijos nuskaitymo logika
         const getFirebaseConfig = () => {
             try {
-                if (typeof __firebase_config !== 'undefined') return JSON.parse(__firebase_config);
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) return JSON.parse(__firebase_config);
             } catch(e) {}
             return null;
         };
@@ -76,7 +75,9 @@
         const IconSave = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>;
         const IconChevron = ({ expanded }) => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}><polyline points="9 18 15 12 9 6"/></svg>;
         const IconUpload = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>;
-        const IconSettings = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+        const IconHistory = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+        const IconX = () => <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+        const IconSettings = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
 
         const App = () => {
             const [activeTab, setActiveTab] = useState("ataskaita");
@@ -85,6 +86,8 @@
             const [db, setDb] = useState(null);
             const [user, setUser] = useState(null);
             const [latestCloudReport, setLatestCloudReport] = useState(null);
+            const [historyList, setHistoryList] = useState([]);
+            const [selectedHistoryReport, setSelectedHistoryReport] = useState(null);
             const [saving, setSaving] = useState(false);
             const [errorMsg, setErrorMsg] = useState(null);
             const [expandedOrders, setExpandedOrders] = useState(new Set());
@@ -97,7 +100,11 @@
             const [showColPicker, setShowColPicker] = useState(false);
             const [vis, setVis] = useState({ s_pot: true, s_used_pct: true, s_change: true, s_free: true, s_free_pct: true, k_pot: false, k_used: false, k_used_pct: false, k_free_pct: false });
 
-            // (1) Firebase inicializavimas (su apsauga nuo lokalaus paleidimo)
+            // Registro filtrai
+            const [filterCity, setFilterCity] = useState("");
+            const [filterStatus, setFilterStatus] = useState("");
+            const [filterCat, setFilterCat] = useState("");
+
             useEffect(() => {
                 if (!firebaseConfig) return;
                 const initFirebase = async () => {
@@ -109,25 +116,40 @@
                         if (initialAuthToken) await window.fb.signInWithCustomToken(auth, initialAuthToken);
                         else await window.fb.signInAnonymously(auth);
                         window.fb.onAuthStateChanged(auth, setUser);
-                    } catch (err) { console.warn("Firebase config not provided or error during init."); }
+                    } catch (err) { console.warn("Firebase init failed."); }
                 };
                 initFirebase();
             }, []);
 
-            // (2) Viešų duomenų stebėjimas
             useEffect(() => {
                 if (!db || !user) return;
                 const reportRef = window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'published', 'latest');
-                const unsubscribe = window.fb.onSnapshot(reportRef, (doc) => {
+                const unsubLatest = window.fb.onSnapshot(reportRef, (doc) => {
                     if (doc.exists()) setLatestCloudReport(doc.data());
                 }, (err) => console.error("Firestore error:", err));
-                return () => unsubscribe();
+
+                const historyRef = window.fb.collection(db, 'artifacts', appId, 'public', 'data', 'history');
+                const unsubHistory = window.fb.onSnapshot(historyRef, (snapshot) => {
+                    const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const sorted = list.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+                    setHistoryList(sorted);
+                });
+
+                return () => { unsubLatest(); unsubHistory(); };
             }, [db, user]);
 
             const monthNames = { "01": "Sausis", "02": "Vasaris", "03": "Kovas", "04": "Balandis", "05": "Gegužė", "06": "Birželis", "07": "Liepa", "08": "Rugpjūtis", "09": "Rugsėjis", "10": "Spalis", "11": "Lapkritis", "12": "Gruodis" };
             const shortMonthNames = { "01": "sau", "02": "vas", "03": "kov", "04": "bal", "05": "geg", "06": "bir", "07": "lie", "08": "rugp", "09": "rugs", "10": "spa", "11": "lap", "12": "gruo" };
 
-            // Pardavimų klasifikavimas
+            const findKey = (row, keys) => {
+                const rowKeys = Object.keys(row);
+                for (const k of keys) {
+                    const found = rowKeys.find(rk => rk.toLowerCase().trim() === k.toLowerCase().trim() || rk.toLowerCase().includes(k.toLowerCase()));
+                    if (found) return found;
+                }
+                return null;
+            };
+
             const getSaleType = (text) => {
                 if (!text) return "laisva";
                 const clean = text.toString().trim();
@@ -137,8 +159,8 @@
                 if (/LT advert|savireklama/i.test(clean)) return "nemokamas";
                 if (/{R}|{S}/i.test(clean)) return "mokamas";
                 const hasOrder = /\b\d{4}\b/.test(clean);
-                const initMatch = clean.match(/[A-Z]\.\s*[A-Z]\./g) || [];
-                const validInit = initMatch.some(i => i.replace(/\s/g, '').toUpperCase() !== 'R.P.');
+                const initials = clean.match(/[A-Z]\.\s*[A-Z]\./g) || [];
+                const validInit = initials.some(i => i.replace(/\s/g, '').toUpperCase() !== 'R.P.');
                 if (hasOrder && validInit) return "mokamas";
                 return "nemokamas";
             };
@@ -153,16 +175,38 @@
                     const workbook = XLSX.read(dataArr, { type: 'array', cellDates: true });
                     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-                    const normalized = jsonData.map(row => ({
-                        Kodas: row["Stendo kodas"] || row["Kodas"] || "",
-                        Data: row["Data"] instanceof Date ? row["Data"].toISOString().split('T')[0] : row["Data"],
-                        Kategorija: row["N - Kategorija"] || "Kita",
-                        Pardavimas: row["Pardavimas"] || "",
-                        SaleType: getSaleType(row["Pardavimas"]),
-                        Miestas: row["Miestas"] || "",
-                        Adresas: row["Adresas"] || ""
-                    })).filter(r => r.Kodas);
-                    setData(normalized);
+                    
+                    if (jsonData.length > 0) {
+                        const first = jsonData[0];
+                        const kKodas = findKey(first, ["Stendo kodas", "Kodas", "ID"]);
+                        const kData = findKey(first, ["Data", "Date"]);
+                        const kKat = findKey(first, ["N - Kategorija", "Kategorija", "Category"]);
+                        const kPard = findKey(first, ["Pardavimas", "Client", "Klientas"]);
+                        const kMiestas = findKey(first, ["Miestas", "City"]);
+                        const kAdr = findKey(first, ["Pardavimų adresas", "Adresas", "Address"]);
+                        const kStatusas = findKey(first, ["Statusas", "Status"]);
+
+                        const normalized = jsonData.map(row => {
+                            const rawStatusVal = (row[kStatusas] || "").toString();
+                            const rawStatusLower = rawStatusVal.toLowerCase();
+                            let derivedStatus = "Aktyvus";
+                            if (rawStatusLower.includes("x")) derivedStatus = "Neaktyvus";
+                            else if (rawStatusLower.includes("ruošiama") || rawStatusLower.includes("remontuojama")) derivedStatus = "Laikinai neveikia";
+
+                            return {
+                                Kodas: row[kKodas] || "",
+                                Data: row[kData] instanceof Date ? row[kData].toISOString().split('T')[0] : row[kData],
+                                Kategorija: row[kKat] || "Kita",
+                                Pardavimas: row[kPard] || "",
+                                SaleType: getSaleType(row[kPard]),
+                                Miestas: row[kMiestas] || "",
+                                Adresas: row[kAdr] || "",
+                                Status: derivedStatus,
+                                RawStatus: rawStatusVal
+                            };
+                        }).filter(r => r.Kodas);
+                        setData(normalized);
+                    }
                     setLoading(false);
                 };
                 reader.readAsArrayBuffer(file);
@@ -172,13 +216,52 @@
                 const inventory = new Map();
                 data.forEach(row => {
                     if (!inventory.has(row.Kodas)) {
-                        inventory.set(row.Kodas, { kodas: row.Kodas, miestas: row.Miestas, adresas: row.Adresas, kategorija: row.Kategorija, catKey: row.Kategorija.toLowerCase().trim() });
+                        inventory.set(row.Kodas, { 
+                            kodas: row.Kodas, 
+                            miestas: row.Miestas, 
+                            adresas: row.Adresas, 
+                            kategorija: row.Kategorija, 
+                            catKey: row.Kategorija.toLowerCase().trim(),
+                            status: row.Status || "Aktyvus",
+                            rawStatus: row.RawStatus || ""
+                        });
                     }
                 });
                 return inventory;
             }, [data]);
 
-            // Analitikos skaičiavimas
+            const filterOptions = useMemo(() => {
+                const cities = new Set();
+                const cats = new Set();
+                const statuses = new Set();
+                standInventory.forEach(s => {
+                    if (s.miestas) cities.add(s.miestas);
+                    if (s.kategorija) cats.add(s.kategorija);
+                    if (s.status) statuses.add(s.status);
+                });
+                return { 
+                    cities: Array.from(cities).sort(), 
+                    cats: Array.from(cats).sort(),
+                    statuses: Array.from(statuses).sort()
+                };
+            }, [standInventory]);
+
+            const filteredRegistryStands = useMemo(() => {
+                return Array.from(standInventory.values())
+                    .filter(s => 
+                        (!filterCity || s.miestas === filterCity) && 
+                        (!filterStatus || s.status === filterStatus) && 
+                        (!filterCat || s.kategorija === filterCat)
+                    )
+                    .sort((a, b) => a.kodas.localeCompare(b.kodas));
+            }, [standInventory, filterCity, filterStatus, filterCat]);
+
+            const clearRegistryFilters = () => {
+                setFilterCity("");
+                setFilterStatus("");
+                setFilterCat("");
+            };
+
             const reportData = useMemo(() => {
                 if (!data.length) return null;
                 const sortedMonths = [];
@@ -191,9 +274,11 @@
                 const baseMonthStr = new Date(new Date(startMonth + "-01").setMonth(new Date(startMonth + "-01").getMonth() - 1)).toISOString().substring(0, 7);
 
                 const summary = {};
+                const activeStands = Array.from(standInventory.values()).filter(s => s.status === 'Aktyvus');
+
                 [...ORDER_MUSU, ...ORDER_SUBNUOMA].forEach(c => {
                     const catKey = c.toLowerCase();
-                    const potCount = Array.from(standInventory.values()).filter(s => s.catKey === catKey).length;
+                    const potCount = activeStands.filter(s => s.catKey === catKey).length;
                     summary[catKey] = { name: c, potentialUnits: potCount, monthlyStats: {} };
                     [baseMonthStr, ...sortedMonths].forEach(m => {
                         summary[catKey].monthlyStats[m] = { uniqueSoldStands: new Set() };
@@ -201,12 +286,14 @@
                 });
 
                 data.forEach(row => {
-                    if (!row.Data) return;
-                    const m = row.Data.substring(0, 7);
-                    const stats = summary[row.Kategorija.toLowerCase()]?.monthlyStats[m];
-                    if (stats) {
-                        const isMatch = saleFilter === "bendrai" ? (row.SaleType === "mokamas" || row.SaleType === "nemokamas") : row.SaleType === saleFilter;
-                        if (isMatch) stats.uniqueSoldStands.add(row.Kodas);
+                    const m = row.Data?.substring(0, 7);
+                    const stand = standInventory.get(row.Kodas);
+                    if (stand && stand.status === 'Aktyvus') {
+                        const stats = summary[row.Kategorija.toLowerCase()]?.monthlyStats[m];
+                        if (stats) {
+                            const isMatch = saleFilter === "bendrai" ? (row.SaleType === "mokamas" || row.SaleType === "nemokamas") : row.SaleType === saleFilter;
+                            if (isMatch) stats.uniqueSoldStands.add(row.Kodas);
+                        }
                     }
                 });
 
@@ -229,9 +316,8 @@
                     visoSubnuoma: calculateTotalObj(ORDER_SUBNUOMA, "VISO SUBNUOMA"),
                     grandTotal: calculateTotalObj([...ORDER_MUSU, ...ORDER_SUBNUOMA], "GALUTINIAI REZULTATAI")
                 };
-            }, [data, startMonth, endMonth, saleFilter]);
+            }, [data, startMonth, endMonth, standInventory, saleFilter]);
 
-            // Užsakymų lapo duomenys
             const ordersReport = useMemo(() => {
                 const ordersMap = new Map();
                 data.forEach(row => {
@@ -252,18 +338,42 @@
                 return Array.from(ordersMap.values()).map(o => ({ ...o, standsCount: o.stands.size, standsList: Array.from(o.stands.values()) })).sort((a,b) => a.name.localeCompare(b.name));
             }, [data, saleFilter, ordersMonth]);
 
-            const handleSaveToCloud = async () => {
+            const handlePublish = async () => {
                 if (!reportData || !db || !user) return;
                 setSaving(true);
+                const updatedAt = new Date().toISOString();
                 const ser = (obj) => ({ ...obj, monthlyStats: Object.fromEntries(Object.entries(obj.monthlyStats).map(([m, s]) => [m, { ...s, uniqueSoldStands: Array.from(s.uniqueSoldStands) }])) });
                 const summarySerialized = {};
                 Object.keys(reportData.summary).forEach(cat => summarySerialized[cat] = ser(reportData.summary[cat]));
                 
-                await window.fb.setDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'published', 'latest'), {
-                    summary: summarySerialized, visoMusu: ser(reportData.visoMusu), visoSubnuoma: ser(reportData.visoSubnuoma), grandTotal: ser(reportData.grandTotal),
-                    months: reportData.months, baseMonth: reportData.baseMonth, updatedAt: new Date().toISOString(), saleFilter, startMonth, endMonth
-                });
+                const reportToSave = {
+                    summary: summarySerialized, 
+                    visoMusu: ser(reportData.visoMusu), 
+                    visoSubnuoma: ser(reportData.visoSubnuoma), 
+                    grandTotal: ser(reportData.grandTotal),
+                    months: reportData.months, 
+                    baseMonth: reportData.baseMonth, 
+                    updatedAt, 
+                    saleFilter, 
+                    startMonth, 
+                    endMonth
+                };
+
+                await window.fb.setDoc(window.fb.doc(db, 'artifacts', appId, 'public', 'data', 'published', 'latest'), reportToSave);
+                await window.fb.addDoc(window.fb.collection(db, 'artifacts', appId, 'public', 'data', 'history'), reportToSave);
                 setSaving(false);
+            };
+
+            const handleDownloadPDF = () => {
+                const element = document.getElementById('report-content');
+                if (!element) return;
+                element.classList.add('is-exporting');
+                html2pdf().from(element).set({
+                    margin: 5, 
+                    filename: `Ataskaita_${new Date().toLocaleDateString('lt-LT')}.pdf`,
+                    jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' },
+                    html2canvas: { scale: 2 }
+                }).save().then(() => element.classList.remove('is-exporting'));
             };
 
             const toggleCol = (key) => setVis(prev => ({ ...prev, [key]: !prev[key] }));
@@ -274,7 +384,7 @@
             };
 
             const renderTable = (source) => {
-                if (!source) return <div className="p-20 text-center opacity-20 font-black uppercase">Nėra duomenų</div>;
+                if (!source) return <div className="p-20 text-center opacity-20 font-black uppercase text-black">Nėra duomenų</div>;
                 const { months, summary, baseMonth, visoMusu, visoSubnuoma, grandTotal } = source;
 
                 const renderRow = (s, rowType = "normal") => {
@@ -307,7 +417,7 @@
                                         {vis.s_pot && <td className={`p-1 border-r text-center font-black text-black ${colColor} text-[10px]`}>{potUnits}</td>}
                                         {vis.s_used_pct && <td className={`p-1 border-r text-center text-emerald-700 font-black ${colColor} text-[10px]`}>{fillRate.toFixed(1)}%</td>}
                                         {vis.s_change && <td className={`p-1 border-r text-center text-[10px] ${colColor} ${changeDisplay.startsWith('+') ? 'bg-red-600 text-white font-black' : changeDisplay.startsWith('-') ? 'bg-emerald-600 text-white font-black' : 'text-black opacity-30 font-black'}`}>{changeDisplay}</td>}
-                                        {vis.s_free && <td className={`p-1 border-r text-center text-red-600 font-black ${colColor} text-[10px]`}>{freeUnits.toFixed(1)}</td>}
+                                        {vis.s_free && <td className={`p-1 border-r text-center font-bold text-red-600 ${colColor} text-[10px]`}>{freeUnits.toFixed(1)}</td>}
                                         {vis.s_free_pct && <td className={`p-1 border-r text-center text-red-600 font-black ${colColor} text-[10px]`}>{(100-fillRate).toFixed(1)}%</td>}
                                     </Fragment>
                                 );
@@ -336,10 +446,10 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr className="bg-gray-100"><td colSpan={1 + months.length * 5} className="p-1 px-4 font-black text-[8px] tracking-widest text-black uppercase">MŪSŲ TINKLAS</td></tr>
+                            <tr className="bg-gray-100 text-black font-black"><td colSpan={1 + months.length * 5} className="p-1 px-4 font-black text-[8px] tracking-widest text-black uppercase">MŪSŲ TINKLAS</td></tr>
                             {ORDER_MUSU.map(c => renderRow(summary[c.toLowerCase()]))}
                             {renderRow(visoMusu, "musu")}
-                            <tr className="bg-gray-100 border-t"><td colSpan={1 + months.length * 5} className="p-1 px-4 font-black text-[8px] tracking-widest text-black uppercase">SUBNUOMOS TINKLAS</td></tr>
+                            <tr className="bg-gray-100 border-t text-black font-black"><td colSpan={1 + months.length * 5} className="p-1 px-4 font-black text-[8px] tracking-widest text-black uppercase">SUBNUOMOS TINKLAS</td></tr>
                             {ORDER_SUBNUOMA.map(c => renderRow(summary[c.toLowerCase()]))}
                             {renderRow(visoSubnuoma, "sub")}
                             <tr className="bg-gray-800 text-white"><td colSpan={1 + months.length * 5} className="p-2 px-4 font-black text-[10px] uppercase tracking-widest text-center">GALUTINIAI REZULTATAI</td></tr>
@@ -354,35 +464,36 @@
                     <div className="max-w-full mx-auto">
                         {errorMsg && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded shadow-sm no-print text-xs font-bold uppercase">{errorMsg}</div>}
                         
-                        <div className="bg-white p-3 lg:p-4 rounded-xl shadow-sm border border-gray-200 mb-4 no-print flex flex-col md:flex-row justify-between items-center gap-3">
+                        <div className="bg-white p-3 lg:p-4 rounded-xl shadow-sm border border-gray-200 mb-4 no-print flex flex-col md:flex-row justify-between items-center gap-3 text-black">
                             <div className="flex items-center gap-3">
                                 <Logo className="h-10" />
                                 <div className="border-l pl-3 border-gray-200">
-                                    <h1 className="text-base font-black text-indigo-900 uppercase leading-none">Statika <span className="text-indigo-400 text-[10px]">v17.14</span></h1>
-                                    <p className="text-gray-400 text-[9px] font-bold uppercase mt-0.5 tracking-tighter">Analizės įrankis</p>
+                                    <h1 className="text-base font-black text-indigo-900 uppercase leading-none">Statika <span className="text-indigo-400 text-[10px]">v17.24</span></h1>
+                                    <p className="text-gray-400 text-[9px] font-bold uppercase mt-0.5 tracking-tighter">UŽIMTUMAS</p>
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={() => setActiveTab("ataskaita")} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === "ataskaita" ? "bg-indigo-600 text-white" : "bg-white text-gray-400 border hover:bg-gray-50"}`}>Suvestinė</button>
+                                <button onClick={() => setActiveTab("ataskaita")} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === "ataskaita" ? "bg-indigo-600 text-white" : "bg-white text-gray-400 border hover:bg-gray-50"}`}>Suvestinė online</button>
                                 <button onClick={() => setActiveTab("uzsakymai")} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === "uzsakymai" ? "bg-indigo-600 text-white" : "bg-white text-gray-400 border hover:bg-gray-50"}`}>Užsakymai</button>
-                                <button onClick={() => setActiveTab("registras")} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === "registras" ? "bg-indigo-600 text-white" : "bg-white text-gray-400 border hover:bg-gray-50"}`}>Registras</button>
-                                <button onClick={() => setActiveTab("public")} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === "public" ? "bg-indigo-600 text-white" : "bg-white text-gray-400 border hover:bg-gray-50"}`}>Vieša</button>
-                                <button onClick={() => { document.getElementById('report-content').classList.add('is-exporting'); html2pdf().from(document.getElementById('report-content')).set({ margin: 5, filename: 'Ataskaita.pdf', jsPDF: { format: 'a3', orientation: 'landscape' }, html2canvas: { scale: 2 } }).save().then(()=>document.getElementById('report-content').classList.remove('is-exporting')); }} className="px-4 py-1.5 bg-white border text-indigo-600 rounded-lg text-xs font-bold hover:bg-gray-50 shadow-sm flex items-center gap-1.5"><IconDownload /> PDF</button>
-                                {activeTab === "ataskaita" && data.length > 0 && db && <button onClick={handleSaveToCloud} disabled={saving} className={`px-4 py-1.5 ${saving ? 'bg-gray-400' : 'bg-emerald-600 hover:bg-emerald-700'} text-white rounded-lg text-xs font-bold shadow-lg transition-all flex items-center gap-1.5`}><IconSave /> {saving ? '...' : 'Paskelbti'}</button>}
+                                <button onClick={() => setActiveTab("registras")} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === "registras" ? "bg-indigo-600 text-white" : "bg-white text-gray-400 border hover:bg-gray-50"}`}>Stendų registras</button>
+                                <button onClick={() => setActiveTab("history")} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${activeTab === "history" ? "bg-indigo-600 text-white" : "bg-white text-gray-400 border hover:bg-gray-50"}`}><IconHistory /> Istorija</button>
+                                <button onClick={() => setActiveTab("public")} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === "public" ? "bg-indigo-600 text-white" : "bg-white text-gray-400 border hover:bg-gray-50"}`}>Rodoma</button>
+                                <button onClick={handleDownloadPDF} className="px-4 py-1.5 bg-white border text-indigo-600 rounded-lg text-xs font-bold hover:bg-gray-50 shadow-sm flex items-center gap-1.5"><IconDownload /> PDF</button>
+                                {activeTab === "ataskaita" && data.length > 0 && db && <button onClick={handlePublish} disabled={saving} className={`px-4 py-1.5 ${saving ? 'bg-gray-400' : 'bg-emerald-600 hover:bg-emerald-700'} text-white rounded-lg text-xs font-bold shadow-lg transition-all flex items-center gap-1.5`}><IconSave /> {saving ? '...' : 'Paskelbti'}</button>}
                             </div>
                         </div>
 
                         <div id="report-content" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in">
                             {activeTab === "ataskaita" ? (
-                                !data.length ? <div className="p-32 text-center">
+                                !data.length ? <div className="p-32 text-center text-black">
                                     <h2 className="text-xl font-black text-indigo-900 uppercase mb-8">Statikos užimtumo ataskaita</h2>
                                     <label className="inline-flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-black cursor-pointer shadow-xl transition-all"><IconUpload /> Įkelti Excel duomenis<input type="file" className="hidden" onChange={handleFileUpload} accept=".xlsx,.xls,.csv" /></label>
                                 </div> :
                                 <Fragment>
-                                    <div className="p-3 border-b flex flex-wrap gap-4 no-print items-center bg-gray-50/50">
-                                        <div className="flex flex-col gap-0.5"><span className="text-[8px] font-black uppercase text-black/40">Nuo</span><input type="month" value={startMonth} onChange={(e)=>setStartMonth(e.target.value)} className="text-[10px] font-bold border rounded px-2 py-1 outline-none focus:border-indigo-500 text-black font-black"/></div>
-                                        <div className="flex flex-col gap-0.5"><span className="text-[8px] font-black uppercase text-black/40">Iki</span><input type="month" value={endMonth} onChange={(e)=>setEndMonth(e.target.value)} className="text-[10px] font-bold border rounded px-2 py-1 outline-none focus:border-indigo-500 text-black font-black"/></div>
-                                        <div className="flex flex-col gap-0.5"><span className="text-[8px] font-black uppercase text-black/40">Analitika</span><select value={saleFilter} onChange={(e)=>setSaleFilter(e.target.value)} className="text-[10px] font-bold border rounded px-2 py-1 outline-none text-black font-black"><option value="mokamas">Komerciniai</option><option value="nemokamas">Nemokami</option><option value="bendrai">Bendrai</option><option value="rezervacija">Rezervacijos</option></select></div>
+                                    <div className="p-3 border-b flex flex-wrap gap-4 no-print items-center bg-gray-50/50 text-black">
+                                        <div className="flex flex-col gap-0.5"><span className="text-[8px] font-black uppercase text-black/40 text-black">Nuo</span><input type="month" value={startMonth} onChange={(e)=>setStartMonth(e.target.value)} className="text-[10px] font-bold border rounded px-2 py-1 outline-none focus:border-indigo-500 text-black font-black"/></div>
+                                        <div className="flex flex-col gap-0.5"><span className="text-[8px] font-black uppercase text-black/40 text-black">Iki</span><input type="month" value={endMonth} onChange={(e)=>setEndMonth(e.target.value)} className="text-[10px] font-bold border rounded px-2 py-1 outline-none focus:border-indigo-500 text-black font-black"/></div>
+                                        <div className="flex flex-col gap-0.5"><span className="text-[8px] font-black uppercase text-black/40 text-black">Analitika</span><select value={saleFilter} onChange={(e)=>setSaleFilter(e.target.value)} className="text-[10px] font-bold border rounded px-2 py-1 outline-none text-black font-black"><option value="mokamas">Komerciniai</option><option value="nemokamas">Nemokami</option><option value="bendrai">Bendrai</option><option value="rezervacija">Rezervacijos</option></select></div>
                                         <div className="relative mt-4">
                                             <button onClick={() => setShowColPicker(!showColPicker)} className={`flex items-center gap-1 px-3 py-1 border rounded text-[9px] font-black uppercase transition-all ${showColPicker ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white text-black'}`}><IconSettings /> Stulpeliai</button>
                                             {showColPicker && (
@@ -390,11 +501,11 @@
                                                     <div className="grid grid-cols-2 gap-4 text-black">
                                                         <div className="space-y-1">
                                                             <div className="flex justify-between border-b pb-1 mb-1 font-black"><span className="text-[8px] uppercase">Stendai</span><button onClick={() => toggleGroup('stendai')} className="text-[7px] text-indigo-600 font-black underline">Visi</button></div>
-                                                            {[{id:'s_pot',l:'Galimybė'},{id:'s_used_pct',l:'Išnaudota %'},{id:'s_change',l:'Pokytis'},{id:'s_free',l:'Laisvi'},{id:'s_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-1.5 text-[10px] cursor-pointer font-black py-0.5"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} className="rounded border-gray-300" />{c.l}</label>))}
+                                                            {[{id:'s_pot',l:'Galimybė'},{id:'s_used_pct',l:'Išnaudota %'},{id:'s_change',l:'Pokytis'},{id:'s_free',l:'Laisvi'},{id:'s_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-1.5 text-[10px] cursor-pointer font-black py-0.5 text-black"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} className="rounded border-gray-300" />{c.l}</label>))}
                                                         </div>
                                                         <div className="space-y-1">
                                                             <div className="flex justify-between border-b pb-1 mb-1 font-black"><span className="text-[8px] uppercase">Kabėjimas</span><button onClick={() => toggleGroup('kabėjimas')} className="text-[7px] text-indigo-600 font-black underline">Visi</button></div>
-                                                            {[{id:'k_pot',l:'Galimybė'},{id:'k_used',l:'Išnaudota'},{id:'k_used_pct',l:'Išn. %'},{id:'k_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-1.5 text-[10px] cursor-pointer font-black py-0.5"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} className="rounded border-gray-300" />{c.l}</label>))}
+                                                            {[{id:'k_pot',l:'Galimybė'},{id:'k_used',l:'Išnaudota'},{id:'k_used_pct',l:'Išn. %'},{id:'k_free_pct',l:'Laisvi %'}].map(c=>(<label key={c.id} className="flex items-center gap-1.5 text-[10px] cursor-pointer font-black py-0.5 text-black"><input type="checkbox" checked={vis[c.id]} onChange={()=>toggleCol(c.id)} className="rounded border-gray-300" />{c.l}</label>))}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -405,61 +516,172 @@
                                 </Fragment>
                             ) : activeTab === "uzsakymai" ? (
                                 <Fragment>
-                                    <div className="p-3 border-b no-print bg-gray-50/50 flex gap-4">
-                                        <div className="flex flex-col gap-0.5"><span className="text-[8px] font-black uppercase text-black/40">Pasirinktas mėnuo</span><input type="month" value={ordersMonth} onChange={(e)=>setOrdersMonth(e.target.value)} className="text-[10px] font-bold border rounded px-2 py-1 outline-none text-black font-black"/></div>
+                                    <div className="p-3 border-b no-print bg-gray-50/50 flex gap-4 text-black font-black">
+                                        <div className="flex flex-col gap-0.5 text-black"><span className="text-[8px] font-black uppercase text-black/40 text-black">Pasirinktas mėnuo</span><input type="month" value={ordersMonth} onChange={(e)=>setOrdersMonth(e.target.value)} className="text-[10px] font-bold border rounded px-2 py-1 outline-none text-black font-black"/></div>
                                     </div>
-                                    <table className="w-full text-[10px] text-left border-collapse">
-                                        <thead className="bg-gray-50 font-black uppercase text-[9px] border-b tracking-wider">
+                                    <table className="w-full text-[10px] text-left border-collapse text-black">
+                                        <thead className="bg-gray-50 font-black uppercase text-[9px] border-b tracking-wider text-black">
                                             <tr><th className="p-3 w-10"></th><th className="p-3 text-black">Klientas</th><th className="p-3 w-24 text-center text-black">Nuo</th><th className="p-3 w-24 text-center text-black">Iki</th><th className="p-3 w-16 text-center text-black">Stendai</th><th className="p-3 w-24 text-center text-black">Tipas</th></tr>
                                         </thead>
                                         <tbody>
                                             {ordersReport.length > 0 ? ordersReport.map((o, i) => (
                                                 <Fragment key={i}>
                                                     <tr onClick={() => { const n = new Set(expandedOrders); if(n.has(o.name)) n.delete(o.name); else n.add(o.name); setExpandedOrders(n); }} className={`border-b hover:bg-indigo-50/30 cursor-pointer ${expandedOrders.has(o.name) ? 'bg-indigo-50/50' : ''}`}>
-                                                        <td className="p-2 text-center"><IconChevron expanded={expandedOrders.has(o.name)} /></td>
-                                                        <td className="p-2 font-black text-black">{o.name}</td>
+                                                        <td className="p-2 text-center text-black"><IconChevron expanded={expandedOrders.has(o.name)} /></td>
+                                                        <td className="p-2 font-bold text-black">{o.name}</td>
                                                         <td className="p-2 text-center font-mono font-black italic text-black">{o.startDate}</td>
                                                         <td className="p-2 text-center font-mono font-black italic text-black">{o.endDate}</td>
                                                         <td className="p-2 text-center font-black text-indigo-600 text-[11px]">{o.standsCount}</td>
                                                         <td className="p-2 text-center"><span className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase ${o.type === 'mokamas' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>{o.type}</span></td>
                                                     </tr>
-                                                    {expandedOrders.has(o.name) && <tr><td colSpan="6" className="bg-gray-100/50 p-3 no-print-row"><div className="bg-white rounded-lg border border-gray-200 shadow-sm max-w-3xl mx-auto overflow-hidden animate-in slide-in-from-top-2"><table className="w-full text-[10px] text-left border-collapse"><thead><tr className="bg-gray-50 border-b text-[8px] font-black uppercase tracking-tighter text-black"><th className="p-2 px-4">Miestas</th><th className="p-2">Adresas</th><th className="p-2 w-24 text-center">Kodas</th></tr></thead><tbody>{o.standsList.map((s, si)=>(<tr key={si} className="border-b border-gray-50 last:border-0 hover:bg-indigo-50/20"><td className="p-2 px-4 font-black text-black">{s.miestas}</td><td className="p-2 text-black">{s.adresas}</td><td className="p-2 text-center font-mono font-black text-indigo-600">{s.kodas}</td></tr>))}</tbody></table></div></td></tr>}
+                                                    {expandedOrders.has(o.name) && <tr><td colSpan="6" className="bg-gray-100/50 p-3 no-print-row"><div className="bg-white rounded-lg border border-gray-200 shadow-sm max-w-3xl mx-auto overflow-hidden animate-in slide-in-from-top-2 text-black font-black"><table className="w-full text-[10px] text-left border-collapse"><thead><tr className="bg-gray-50 border-b text-[8px] font-black uppercase tracking-tighter text-black"><th className="p-2 px-4 text-black">Miestas</th><th className="p-2 text-black">Adresas</th><th className="p-2 w-24 text-center text-black">Kodas</th></tr></thead><tbody>{o.standsList.map((s, si)=>(<tr key={si} className="border-b border-gray-50 last:border-0 hover:bg-indigo-50/20"><td className="p-2 px-4 font-black text-black">{s.miestas}</td><td className="p-2 text-black font-black">{s.adresas}</td><td className="p-2 text-center font-mono font-black text-indigo-600">{s.kodas}</td></tr>))}</tbody></table></div></td></tr>}
                                                 </Fragment>
                                             )) : <tr><td colSpan="6" className="p-10 text-center text-black font-black opacity-30 italic">Užsakymų šiame mėnesyje nerasta</td></tr>}
                                         </tbody>
                                     </table>
                                 </Fragment>
                             ) : activeTab === "registras" ? (
-                                <table className="w-full text-[10px] text-left border-collapse">
-                                    <thead className="bg-gray-50 border-b font-black uppercase text-[9px] tracking-widest text-black">
-                                        <tr><th className="p-3 w-32 border-r text-center">Kodas</th><th className="p-3">Miestas</th><th className="p-3">Adresas</th><th className="p-3 text-right">Kategorija</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        {Array.from(standInventory.values()).sort((a,b) => a.kodas.localeCompare(b.kodas)).map((s, i) => (
-                                            <tr key={i} className="border-b hover:bg-gray-50 transition-colors">
-                                                <td className="p-2 border-r text-center font-mono font-black text-black">{s.kodas}</td>
-                                                <td className="p-2 text-black font-black">{s.miestas}</td>
-                                                <td className="p-2 text-black text-[9px]">{s.adresas}</td>
-                                                <td className="p-2 text-right font-black text-indigo-600 uppercase text-[9px]">{s.kategorija}</td>
+                                <Fragment>
+                                    <div className="p-3 border-b no-print bg-gray-50/50 flex flex-wrap items-end gap-4 text-black font-black">
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-[8px] font-black uppercase text-black/40 text-black font-black">Statusas (Excel)</span>
+                                            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="text-[10px] font-bold border rounded px-2 py-1 outline-none text-black font-black h-8 min-w-[120px]">
+                                                <option value="">Visi</option>
+                                                {filterOptions.statuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-[8px] font-black uppercase text-black/40 text-black font-black">Kategorija</span>
+                                            <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="text-[10px] font-bold border rounded px-2 py-1 outline-none text-black font-black h-8 min-w-[120px]">
+                                                <option value="">Visos</option>
+                                                {filterOptions.cats.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="text-[8px] font-black uppercase text-black/40 text-black font-black">Miestas</span>
+                                            <select value={filterCity} onChange={(e) => setFilterCity(e.target.value)} className="text-[10px] font-bold border rounded px-2 py-1 outline-none text-black font-black h-8 min-w-[120px]">
+                                                <option value="">Visi</option>
+                                                {filterOptions.cities.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 ml-auto pb-1 text-black font-black">
+                                            <div className="text-[10px] font-black uppercase px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-100">
+                                                Rasta: {filteredRegistryStands.length} stendų
+                                            </div>
+                                            {(filterCity || filterStatus || filterCat) && (
+                                                <button 
+                                                    onClick={clearRegistryFilters}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg border border-rose-100 transition-all text-black font-black"
+                                                >
+                                                    <IconX /> Išvalyti filtrus
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <table className="w-full text-[10px] text-left border-collapse text-black font-black">
+                                        <thead className="bg-gray-50 border-b font-black uppercase text-[9px] tracking-widest text-black font-black">
+                                            <tr>
+                                                <th className="p-3 w-32 border-r text-center text-black">Būsena</th>
+                                                <th className="p-3 w-32 border-r text-center font-black text-black">Statusas</th>
+                                                <th className="p-3 w-32 border-r text-center font-black text-black">Kodas</th>
+                                                <th className="p-3 text-black">Miestas</th>
+                                                <th className="p-3 text-black">Adresas</th>
+                                                <th className="p-3 text-right text-black">Kategorija</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {filteredRegistryStands.map((s, i) => (
+                                                <tr key={i} className="border-b hover:bg-gray-50 transition-colors">
+                                                    <td className="p-2 border-r text-center text-black font-black">
+                                                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${
+                                                            s.status === "Aktyvus" ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 
+                                                            s.status === "Neaktyvus" ? "bg-rose-50 text-rose-700 border-rose-100" : 
+                                                            "bg-amber-50 text-amber-700 border-amber-100"
+                                                        }`}>
+                                                            {s.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-2 border-r text-center text-[9px] font-black opacity-80 text-black font-black">{s.rawStatus}</td>
+                                                    <td className="p-2 border-r text-center font-mono font-black text-black font-black">{s.kodas}</td>
+                                                    <td className="p-2 text-black font-black">{s.miestas}</td>
+                                                    <td className="p-2 text-black text-[10px] font-black font-medium">{s.adresas}</td>
+                                                    <td className="p-2 text-right font-black text-indigo-600 uppercase text-[9px]">{s.kategorija}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </Fragment>
+                            ) : activeTab === "history" ? (
+                                <div className="animate-in slide-in-from-right duration-300">
+                                    <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
+                                        <h2 className="text-lg font-black text-black uppercase">Suvestinių istorija</h2>
+                                        {selectedHistoryReport && (
+                                            <div className="flex gap-2">
+                                                <button onClick={handleDownloadPDF} className="px-4 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5"><IconDownload /> Atsisiųsti PDF</button>
+                                                <button onClick={() => setSelectedHistoryReport(null)} className="px-4 py-1.5 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-lg border border-indigo-100">Grįžti į sąrašą</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {!selectedHistoryReport ? (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-[11px] text-left border-collapse">
+                                                <thead className="bg-white border-b text-[9px] font-black uppercase text-black tracking-widest">
+                                                    <tr><th className="p-4">Data ir laikas</th><th className="p-4">Laikotarpis</th><th className="p-4">Statusas</th><th className="p-4 text-right">Veiksmai</th></tr>
+                                                </thead>
+                                                <tbody>
+                                                    {historyList.length > 0 ? historyList.map(item => {
+                                                        const isLive = latestCloudReport && item.updatedAt === latestCloudReport.updatedAt;
+                                                        return (
+                                                            <tr key={item.id} className="border-b hover:bg-gray-50">
+                                                                <td className="p-4 font-black">{new Date(item.updatedAt).toLocaleString('lt-LT')}</td>
+                                                                <td className="p-4 text-indigo-600 font-bold">{item.startMonth} - {item.endMonth}</td>
+                                                                <td className="p-4">
+                                                                    {isLive ? (
+                                                                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase">
+                                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                                            Rodoma
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="px-2 py-1 rounded bg-gray-50 text-gray-400 border border-gray-200 text-[8px] font-black uppercase">
+                                                                            Neaktyvus
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="p-4 text-right flex justify-end gap-2 text-black">
+                                                                    <button onClick={() => setSelectedHistoryReport(item)} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase hover:bg-indigo-700 shadow-sm">Peržiūrėti</button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    }) : <tr><td colSpan="4" className="p-20 text-center opacity-30 italic font-black">Istorija tuščia</td></tr>}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 animate-in fade-in">
+                                            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 flex justify-between items-center">
+                                                <div className="flex items-center gap-3"><IconHistory /> <div><p className="text-[10px] font-black uppercase">Archyvinė ataskaita</p><p className="text-xs font-bold">{new Date(selectedHistoryReport.updatedAt).toLocaleString('lt-LT')}</p></div></div>
+                                                <div className="text-right"><p className="text-[8px] font-black uppercase opacity-60">Filtras</p><p className="text-xs font-bold uppercase text-black">{selectedHistoryReport.saleFilter}</p></div>
+                                            </div>
+                                            {renderTable(selectedHistoryReport)}
+                                        </div>
+                                    )}
+                                </div>
                             ) : (
                                 <Fragment>
-                                    <div className="p-6 bg-white border-b flex flex-col md:flex-row justify-between items-center gap-4">
+                                    <div className="p-6 bg-white border-b flex flex-col md:flex-row justify-between items-center gap-4 text-black font-black text-black">
                                         <div>
-                                            <h2 className="text-lg font-black text-black uppercase leading-tight">Paskutinė paskelbta suvestinė</h2>
-                                            {latestCloudReport?.updatedAt && <p className="text-emerald-600 font-black text-[10px] uppercase mt-1 animate-pulse tracking-widest">Atnaujinta: {new Date(latestCloudReport.updatedAt).toLocaleString('lt-LT')}</p>}
+                                            <h2 className="text-lg font-black text-black uppercase leading-tight text-black">Paskutinė paskelbta suvestinė</h2>
+                                            {latestCloudReport?.updatedAt && <p className="text-emerald-600 font-black text-[10px] uppercase mt-1 animate-pulse tracking-widest text-black font-black">Atnaujinta: {new Date(latestCloudReport.updatedAt).toLocaleString('lt-LT')}</p>}
                                         </div>
-                                        {latestCloudReport && <div className="text-right flex flex-col items-end"><span className="text-[8px] font-black text-black opacity-40 uppercase tracking-tighter">Konfigūracija</span><span className="text-[10px] font-black text-indigo-900 uppercase">Filtras: {latestCloudReport.saleFilter}</span></div>}
+                                        {latestCloudReport && <div className="text-right flex flex-col items-end text-black font-black"><span className="text-[8px] font-black text-black opacity-40 uppercase tracking-tighter text-black font-black">Konfigūracija</span><span className="text-[10px] font-black text-indigo-900 uppercase text-black font-black">Filtras: {latestCloudReport.saleFilter}</span></div>}
                                     </div>
-                                    {latestCloudReport ? renderTable(latestCloudReport) : <div className="p-20 text-center flex flex-col items-center gap-3"><div className="w-10 h-10 border-2 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div><p className="opacity-20 text-xs font-black uppercase tracking-widest text-black">Kraunama iš debesies...</p></div>}
+                                    {latestCloudReport ? renderTable(latestCloudReport) : <div className="p-20 text-center flex flex-col items-center gap-3 text-black font-black text-black"><div className="w-10 h-10 border-2 border-indigo-100 border-t-indigo-600 rounded-full animate-spin text-black"></div><p className="opacity-20 text-xs font-black uppercase tracking-widest text-black font-black">Kraunama iš serverio...</p></div>}
                                 </Fragment>
                             )}
                         </div>
                         
-                        {loading && <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4"><div className="w-12 h-12 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div><p className="text-black font-black uppercase text-[10px] tracking-widest">Apdorojama...</p></div>}
+                        {loading && <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4 text-black font-black text-black text-black"><div className="w-12 h-12 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin text-black"></div><p className="text-black font-black uppercase text-[10px] tracking-widest text-black font-black text-black text-black">Apdorojama...</p></div>}
                     </div>
                 </div>
             );
