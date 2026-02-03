@@ -22,7 +22,7 @@
         ::-webkit-scrollbar-thumb:hover { background: #3d943a; }
         .row-expand-transition { transition: all 0.3s ease-in-out; }
         
-        /* PDF EXPORT LOGIKA - v17.6 */
+        /* PDF EXPORT LOGIKA - v17.7 */
         .is-exporting {
             background: white !important;
             padding: 0 !important;
@@ -113,7 +113,7 @@
 
                 const options = {
                     margin: [5, 5, 5, 5],
-                    filename: `LT_ADVERT_Ataskaita_${activeTab}_v17.6.pdf`,
+                    filename: `LT_ADVERT_Ataskaita_${activeTab}_v17.7.pdf`,
                     image: { type: 'jpeg', quality: 1.0 },
                     html2canvas: { 
                         scale: 2, 
@@ -462,7 +462,7 @@
                                 <div className="flex items-center gap-3">
                                     <Logo className="h-8 lg:h-10" />
                                     <div className="border-l pl-3 border-gray-200">
-                                        <h1 className="text-base lg:text-lg font-black text-indigo-900 tracking-tight leading-none mb-0.5 uppercase">Statika <span className="font-normal text-indigo-400 text-xs tracking-normal capitalize">v17.6</span></h1>
+                                        <h1 className="text-base lg:text-lg font-black text-indigo-900 tracking-tight leading-none mb-0.5 uppercase">Statika <span className="font-normal text-indigo-400 text-xs tracking-normal capitalize">v17.7</span></h1>
                                         <p className="text-gray-400 text-[9px] uppercase font-bold tracking-widest text-left">Analizė</p>
                                     </div>
                                 </div>
@@ -495,7 +495,7 @@
                                     <div className="flex justify-between items-start w-full">
                                         <Logo className="h-10" />
                                         <div className="text-right">
-                                            <h2 className="text-xl font-black text-black uppercase tracking-tight">Statikos Užimtumo Suvestinė v17.6</h2>
+                                            <h2 className="text-xl font-black text-black uppercase tracking-tight">Statikos Užimtumo Suvestinė v17.7</h2>
                                             <p className="text-black font-bold uppercase text-[8px] tracking-widest mt-1">Data: {new Date().toLocaleDateString('lt-LT')}</p>
                                         </div>
                                     </div>
@@ -692,8 +692,7 @@
                             !loading && (
                                 <div className="bg-white rounded-xl border-2 border-dashed border-gray-200 py-24 text-center shadow-inner animate-in fade-in">
                                     <div className="bg-indigo-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-indigo-300"><IconFile /></div>
-                                    <h2 className="text-lg lg:text-xl font-black text-indigo-900 mb-2 uppercase tracking-widest tracking-tight leading-none text-center">Statikos užimtumo ataskaitos</h2>
-                                    <p className="text-black text-[10px] lg:text-xs max-w-xs mx-auto font-black leading-relaxed italic mt-2">Įkelkite „Eksportas_Statika.xlsx“ failą analizei pradėti.</p>
+                                    <h2 className="text-lg lg:text-xl font-black text-indigo-900 mb-2 uppercase tracking-widest tracking-tight leading-none text-center">Statikos užimtumo ataskaita</h2>
                                 </div>
                             )
                         )}
